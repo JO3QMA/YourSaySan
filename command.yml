@@ -5,6 +5,9 @@ command:
   summon:
     desc: '読み上げBotを呼び出します。'
     usage: '引数は必要ありません。'
+  bye:
+    desc: '読み上げBotを切断します。'
+    usage: '引数は必要ありません。'
   ping:
     desc: '`Pong`を返します。'
     usage: '引数は必要ありません。'

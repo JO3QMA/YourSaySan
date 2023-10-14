@@ -6,12 +6,18 @@ require_relative './voicevox'
 
 # VCに繋いだ時の受け手
 class VCBot
-  def initialize(bot, event)
-    @bot = bot
+  def initialize(config, event)
+    bot_init(config)
     @text_channel = event.channel
-    @voice_channel = event.user.voice_channel
-    @bot.voice_connect(@voice_channel)
     @voicevox = VoiceVox.new
+  end
+
+  def bot_init(config)
+    @bot = Discordrb::Bot.new(
+      token: config.bot.token,
+      client_id: config.bot.client_id,
+      ignore_bots: true
+    )
   end
 
   def speak(event, message)
@@ -40,8 +46,15 @@ class VCBot
         next
       end
 
-      puts "サーバー: #{event.server.name} チャンネル: #{event.channel.name} ユーザー: #{event.author.name} メッセージ: #{event.message.content}"
+      if event.message.content.size >= 50
+        message = "#{event.message.content[0, 49]} + 以下略"
+        speak(event, message)
+      end
+
+      puts "SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}"
       speak(event, event.message.content)
     end
+    @bot.run
+    @bot.voice_connect(event.user.voice_channel)
   end
 end

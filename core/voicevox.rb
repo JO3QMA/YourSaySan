@@ -8,7 +8,7 @@ require 'json'
 class VoiceVox
   HOST = 'http://127.0.0.1:50021'
 
-  def voice_query(text, speaker = 1)
+  def voice_query(text, speaker = 2)
     puts "[VoiceVox-Query] Text: #{text}"
     # リクエストURL
     uri = URI.parse("#{HOST}/audio_query")
@@ -25,7 +25,7 @@ class VoiceVox
     response.body
   end
 
-  def speak(query, speaker = 1)
+  def speak(query, speaker = 2)
     uri = URI.parse("#{HOST}/synthesis")
     params = {
       speaker: speaker
@@ -37,10 +37,7 @@ class VoiceVox
 
     response = Net::HTTP.post(uri, query, header)
 
-    # response.code
+    puts "[VoiceVox-Speak] #{response.code}"
     response.body
-    # File.open('audio.wav', 'wb') do |file|
-    #  file.write(response.body)
-    # end
   end
 end
