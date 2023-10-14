@@ -1,20 +1,19 @@
 # frozen_string_literal: true
 
+require 'bundler/setup'
 require 'discordrb'
 require 'opus-ruby'
+require 'config'
 require_relative './core/vcbot'
 require_relative './core/voicevox'
 
-# Initialize
-
-TOKEN = ''
-CLIENT_ID = ''
-PREFIX = '!'
+# Config
+config = Config.load_and_set_settings('./config.yml')
 
 bot = Discordrb::Commands::CommandBot.new(
-  token: TOKEN,
-  client_id: CLIENT_ID,
-  prefix: PREFIX,
+  token: config.bot.token,
+  client_id: config.bot.client_id,
+  prefix: config.bot.prefix,
   ignore_bots: true
 )
 

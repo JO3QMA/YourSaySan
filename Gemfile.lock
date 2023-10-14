@@ -1,6 +1,11 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    concurrent-ruby (1.2.2)
+    config (4.2.1)
+      deep_merge (~> 1.2, >= 1.2.1)
+      dry-validation (~> 1.0, >= 1.0.0)
+    deep_merge (1.2.2)
     discordrb (3.5.0)
       discordrb-webhooks (~> 3.5.0)
       ffi (>= 1.9.24)
@@ -11,6 +16,38 @@ GEM
       rest-client (>= 2.0.0)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
+    dry-configurable (1.1.0)
+      dry-core (~> 1.0, < 2)
+      zeitwerk (~> 2.6)
+    dry-core (1.0.1)
+      concurrent-ruby (~> 1.0)
+      zeitwerk (~> 2.6)
+    dry-inflector (1.0.0)
+    dry-initializer (3.1.1)
+    dry-logic (1.5.0)
+      concurrent-ruby (~> 1.0)
+      dry-core (~> 1.0, < 2)
+      zeitwerk (~> 2.6)
+    dry-schema (1.13.3)
+      concurrent-ruby (~> 1.0)
+      dry-configurable (~> 1.0, >= 1.0.1)
+      dry-core (~> 1.0, < 2)
+      dry-initializer (~> 3.0)
+      dry-logic (>= 1.4, < 2)
+      dry-types (>= 1.7, < 2)
+      zeitwerk (~> 2.6)
+    dry-types (1.7.1)
+      concurrent-ruby (~> 1.0)
+      dry-core (~> 1.0)
+      dry-inflector (~> 1.0)
+      dry-logic (~> 1.4)
+      zeitwerk (~> 2.6)
+    dry-validation (1.10.0)
+      concurrent-ruby (~> 1.0)
+      dry-core (~> 1.0, < 2)
+      dry-initializer (~> 3.0)
+      dry-schema (>= 1.12, < 2)
+      zeitwerk (~> 2.6)
     event_emitter (0.2.6)
     ffi (1.16.3)
     http-accept (1.7.0)
@@ -34,12 +71,15 @@ GEM
     websocket-client-simple (0.8.0)
       event_emitter
       websocket
+    zeitwerk (2.6.12)
 
 PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  config
   discordrb
+  opus-ruby
 
 BUNDLED WITH
    2.4.14
