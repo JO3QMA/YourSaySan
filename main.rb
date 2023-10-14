@@ -8,7 +8,7 @@ require_relative './core/vcbot'
 require_relative './core/voicevox'
 
 # Config
-config = Config.load_and_set_settings('./config.yml')
+config = Config.load_and_set_settings('./config.yml', './command.yml')
 
 bot = Discordrb::Commands::CommandBot.new(
   token: config.bot.token,
@@ -23,19 +23,9 @@ bot.ready do
   bot.game = config.bot.status
 end
 
-# help
-bot.command(:help, { aliases: [:h] }) do |event|
-  message = "
-  VOICEVOX読み上げBotです。
-  `/s`, `/summon` : 呼び出し
-  `/h`, `/help` : ヘルプ
-  "
-  event.respond(message)
-end
-
-bot.command(:summon, { aliases: [:s] }) do |event|
+bot.command(:summon,
+            { aliases: [:s], description: config.command.summon.desc, usage: config.command.summon.usage }) do |event|
   if event.user.voice_channel
-    # if event.user.voice_channel ==
     voice_channel = event.user.voice_channel
     bot.voice_connect(voice_channel)
     event.respond('Hey!')

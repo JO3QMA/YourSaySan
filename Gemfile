@@ -3,6 +3,6 @@
 source 'https://rubygems.org'
 
 # gem "rails"
+gem 'config'
 gem 'discordrb'
 gem 'opus-ruby'
-gem 'config'
