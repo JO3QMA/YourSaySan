@@ -23,6 +23,8 @@ bot.ready do
   bot.game = config.bot.status
 end
 
+#bot.include!(:help, { aliases: [:h], description: config.command.help.desc, usage: config.command.help.usage })
+
 bot.command(:summon,
             { aliases: [:s], description: config.command.summon.desc, usage: config.command.summon.usage }) do |event|
   if event.user.voice_channel
@@ -45,6 +47,10 @@ bot.command(:bye, { aliases: [:b] }) do |event|
     bot.voice_destroy(event.message.server)
     event.respond('Bye!')
   end
+end
+
+bot.command(:ping, { description: config.command.ping.desc, usage: config.command.ping.usage }) do |event|
+  event.respond('Pong!')
 end
 
 bot.run
