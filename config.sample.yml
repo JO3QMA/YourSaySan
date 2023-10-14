@@ -2,3 +2,4 @@ bot:
   token: ''
   client_id: ''
   prefix: ''
+    status: 'Reading Bot'

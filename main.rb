@@ -17,10 +17,10 @@ bot = Discordrb::Commands::CommandBot.new(
   ignore_bots: true
 )
 
-# 3. ボットの起動時に実行される処理
+# Bot Init
 bot.ready do
-  puts 'Botを起動します。'
-  bot.game = '[TESTING] 読み上げBot' # ボットのステータスメッセージを設定
+  puts 'Bot is Ready!'
+  bot.game = config.bot.status
 end
 
 # help
