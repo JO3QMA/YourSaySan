@@ -6,10 +6,15 @@ require_relative './voicevox'
 
 # VCに繋いだ時の受け手
 class VCBot
+  attr_accessor :name
+
   def initialize(config, event)
     bot_init(config)
     @text_channel = event.channel
     @voicevox = VoiceVox.new
+    @bot.ready do
+      @bot.voice_connect(event.user.voice_channel)
+    end
   end
 
   def bot_init(config)
@@ -36,6 +41,10 @@ class VCBot
     tempfile
   end
 
+  def kill
+    @bot.stop
+  end
+
   def main
     @bot.message(in: @text_channel) do |event|
       next if event.author.bot_account?
@@ -55,6 +64,5 @@ class VCBot
       speak(event, event.message.content)
     end
     @bot.run
-    @bot.voice_connect(event.user.voice_channel)
   end
 end

@@ -17,6 +17,7 @@ bot = Discordrb::Commands::CommandBot.new(
   prefix: config.bot.prefix,
   ignore_bots: true
 )
+servers = []
 
 # Bot Init
 bot.ready do
@@ -31,14 +32,16 @@ bot.command(:summon,
   # コマンドを実行したユーザーがVCに接続しているか確認
   if event.user.voice_channel
     # サーバー用のThreadが起動しているか確認
-    if !Thread.list.map(&:name).include?(event.server.id)
-      Thread.new do |vcbot|
-        # Thread.nameをサーバーIDに変更
-        Thread.current[:name] = event.server.id
-        vcbot = VCBot.new(config, event)
-        event.respond('Hey!')
-        vcbot.main
-      end
+    puts "Servers : #{servers.map(&:name)}"
+    puts "ServerID: #{event.server.id}"
+    if servers.none? { |server| server.name == event.server.id }
+      server = VCBot.new(config, event)
+      server.name = event.server.id
+      event.respond('Hey!')
+      servers << server
+      puts "ServerInstance: #{server}"
+      puts "Servers : #{servers.map(&:name)}"
+      server.main
     else
       event.respond('すでにボイスチャットに接続されています。')
     end
@@ -47,14 +50,16 @@ bot.command(:summon,
   end
 end
 
-#bot.command(:stop, { aliases: [:skip] }) do |event|
+# bot.command(:stop, { aliases: [:skip] }) do |event|
 #  event.voice.stop_playing if event.voice.playing?
-#end
+# end
 
 bot.command(:bye, { aliases: [:b], description: config.command.bye.desc, usage: config.command.bye.usage }) do |event|
-  if Thread.list.map(&:name).include?(event.server.id)
+  server = servers.find { |sv| sv.name == event.server.id }
+  if server
     event.respond('Bye!')
-    Thread.list[Thread.list.map(&:name).find_index(event.server.id)].kill
+    server.kill
+    servers.delete(server)
   else
     event.respond('Botはボイスチャットに参加していません。')
   end
