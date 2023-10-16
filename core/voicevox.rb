@@ -2,7 +2,6 @@
 
 require 'net/http'
 require 'uri'
-require 'json'
 
 # VoiceVoxとやり取りするためのクラス
 class VoiceVox
