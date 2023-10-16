@@ -2,6 +2,7 @@
 
 require 'discordrb'
 require 'tempfile'
+require 'opus-ruby'
 require_relative './voicevox'
 
 # VCに繋いだ時の受け手

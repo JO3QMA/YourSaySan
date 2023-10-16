@@ -2,7 +2,6 @@
 
 require 'bundler/setup'
 require 'discordrb'
-require 'opus-ruby'
 require 'config'
 require_relative './core/vcbot'
 require_relative './core/voicevox'
@@ -34,7 +33,7 @@ bot.command(:summon,
     # サーバー用のThreadが起動しているか確認
     puts "Servers : #{servers.map(&:name)}"
     puts "ServerID: #{event.server.id}"
-    if servers.none? { |server| server.name == event.server.id }
+    if servers.none? { |sv| sv.name == event.server.id }
       server = VCBot.new(config, event)
       server.name = event.server.id
       event.respond('Hey!')
