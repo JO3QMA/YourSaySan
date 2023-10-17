@@ -67,6 +67,7 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.8.2)
+    wavefile (1.1.2)
     websocket (1.2.10)
     websocket-client-simple (0.8.0)
       event_emitter
@@ -80,6 +81,7 @@ DEPENDENCIES
   config
   discordrb
   opus-ruby
+  wavefile
 
 BUNDLED WITH
    2.4.14

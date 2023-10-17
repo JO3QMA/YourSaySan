@@ -3,7 +3,8 @@
 require 'bundler/setup'
 require 'discordrb'
 require 'config'
-require_relative './core/vcbot'
+require 'tempfile'
+# require_relative './core/vcbot'
 require_relative './core/voicevox'
 
 # Config
@@ -16,56 +17,84 @@ bot = Discordrb::Commands::CommandBot.new(
   prefix: config.bot.prefix,
   ignore_bots: true
 )
-servers = []
 
 # Bot Init
 bot.ready do
   puts 'Bot is Ready!'
   bot.game = config.bot.status
 end
+@text_channel = []
+@voicevox = VoiceVox.new(config)
 
-# bot.include!(:help, { aliases: [:h], description: config.command.help.desc, usage: config.command.help.usage })
-
+# 召喚コマンド
 bot.command(:summon,
             { aliases: [:s], description: config.command.summon.desc, usage: config.command.summon.usage }) do |event|
   # コマンドを実行したユーザーがVCに接続しているか確認
   if event.user.voice_channel
-    # サーバー用のThreadが起動しているか確認
-    puts "Servers : #{servers.map(&:name)}"
-    puts "ServerID: #{event.server.id}"
-    if servers.none? { |sv| sv.name == event.server.id }
-      server = VCBot.new(config, event)
-      server.name = event.server.id
+    # BotがVCに参加している場合は弾く
+    if !event.voice
+      bot.voice_connect(event.user.voice_channel)
+      @text_channel << event.channel.id
       event.respond('Hey!')
-      servers << server
-      puts "ServerInstance: #{server}"
-      puts "Servers : #{servers.map(&:name)}"
-      server.main
     else
-      event.respond('すでにボイスチャットに接続されています。')
+      event.respond('すでにボイスチャットに参加しています。')
     end
   else
     event.respond('ボイスチャットに参加してから使用してください。')
   end
 end
 
-# bot.command(:stop, { aliases: [:skip] }) do |event|
-#  event.voice.stop_playing if event.voice.playing?
-# end
-
-bot.command(:bye, { aliases: [:b], description: config.command.bye.desc, usage: config.command.bye.usage }) do |event|
-  server = servers.find { |sv| sv.name == event.server.id }
-  if server
-    event.respond('Bye!')
-    server.kill
-    servers.delete(server)
+# 再生中の音声を止める
+bot.command(:stop, { aliases: [:skip] }) do |event|
+  if event.voice
+    event.voice.stop_playing if event.voice.playing?
+    nil
   else
-    event.respond('Botはボイスチャットに参加していません。')
+    event.respond('ボイスチャットに参加していません。')
   end
 end
 
+# 切断コマンド
+bot.command(:bye, { aliases: [:b], description: config.command.bye.desc, usage: config.command.bye.usage }) do |event|
+  if event.voice
+    event.respond('Bye!')
+    event.voice.destroy
+    @text_channel.delete(event.channel.id)
+    nil
+  else
+    event.respond('ボイスチャットに参加していません。')
+  end
+end
+
+# 生存確認コマンド
 bot.command(:ping, { description: config.command.ping.desc, usage: config.command.ping.usage }) do |event|
   event.respond('Pong!')
+end
+
+bot.heartbeat do |event|
+end
+
+# メッセージ受信用イベント(@text_channelに入っているテキストチャンネルからのみ受信)
+bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
+  puts "SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}"
+  if event.voice
+    message = event.message.content
+    message = message.gsub(URI::DEFAULT_PARSER.make_regexp(%w[http https]))
+    message = "#{message[0, config.voicevox.max - 1]} 以下略" if message.size >= config.voicevox.max
+    say(event.voice, message)
+  else
+    # Botがすでにチャンネルに参加していなかった場合、受信除外する
+    @text_channel.delete(event.channel.id)
+    puts "Unmonitor : #{event.channel.id}"
+  end
+end
+
+def say(voice_chat, message)
+  Tempfile.create do |tempfile|
+    sound = @voicevox.speak(message)
+    tempfile.write(sound)
+    voice_chat.play_file(tempfile.path)
+  end
 end
 
 bot.run
