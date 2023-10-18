@@ -4,7 +4,6 @@ require 'bundler/setup'
 require 'discordrb'
 require 'config'
 require 'tempfile'
-# require_relative './core/vcbot'
 require_relative './core/voicevox'
 
 # Config
