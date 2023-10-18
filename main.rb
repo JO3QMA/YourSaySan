@@ -4,6 +4,7 @@ require 'bundler/setup'
 require 'discordrb'
 require 'config'
 require 'tempfile'
+require 'logger'
 require_relative './core/voicevox'
 
 # Config
@@ -17,13 +18,17 @@ bot = Discordrb::Commands::CommandBot.new(
   ignore_bots: true
 )
 
+# logging
+logger = Logger.new('bot.log', 'daily')
+logger.datetime_format = '%Y-%m-%d %H:%M:%S'
+
 # Bot Init
 bot.ready do
-  puts 'Bot is Ready!'
+  logger.info('Main') { 'Bot is Ready.' }
   bot.game = config.bot.status
 end
 @text_channel = []
-@voicevox = VoiceVox.new(config)
+@voicevox = VoiceVox.new(config, logger)
 
 # 召喚コマンド
 bot.command(:summon,
@@ -34,6 +39,8 @@ bot.command(:summon,
     if !event.voice
       bot.voice_connect(event.user.voice_channel)
       @text_channel << event.channel.id
+      logger.info("Joined VC: #{event.server.naem}(#{event.user.voice_channel.name})")
+      logger.debug("Monit TC: #{event.channel.name}(#{event.channel.id})")
       event.respond('Hey!')
     else
       event.respond('すでにボイスチャットに参加しています。')
@@ -56,10 +63,11 @@ end
 # 切断コマンド
 bot.command(:bye, { aliases: [:b], description: config.command.bye.desc, usage: config.command.bye.usage }) do |event|
   if event.voice
-    event.respond('Bye!')
     event.voice.destroy
     @text_channel.delete(event.channel.id)
-    nil
+    logger.info("Disconnect VC: #{event.server.name}(#{event.user.voice_channel.name})")
+    logger.debug("Unmonit TC: #{event.channel.name}(#{event.channel.id})")
+    event.respond('Bye!')
   else
     event.respond('ボイスチャットに参加していません。')
   end
@@ -75,8 +83,8 @@ end
 
 # メッセージ受信用イベント(@text_channelに入っているテキストチャンネルからのみ受信)
 bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
-  puts "SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}"
   if event.voice
+    logger.info("SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}")
     message = event.message.content
     message = message.gsub(URI::DEFAULT_PARSER.make_regexp(%w[http https]), 'URL省略')
     message = "#{message[0, config.voicevox.max - 1]} 以下略" if message.size >= config.voicevox.max
@@ -84,7 +92,8 @@ bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
   else
     # Botがすでにチャンネルに参加していなかった場合、受信除外する
     @text_channel.delete(event.channel.id)
-    puts "Unmonitor : #{event.channel.id}"
+    logger.debug("Unmonit TC: #{event.channel.name}(#{event.channel.id})")
+    nil
   end
 end
 
