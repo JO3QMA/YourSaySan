@@ -12,7 +12,7 @@ class VoiceVox
 
   # textとspeakerから音声を生成
   def speak(text, speaker = 2)
-    @logger.infp('VoiceVox') { "Speak: Text: #{text} Speaker: #{speaker}" }
+    @logger.info('VoiceVox') { "Speak: Text: #{text} Speaker: #{speaker}" }
     query = voice_query(text, speaker)
     generate_voice(query, speaker)
   end
