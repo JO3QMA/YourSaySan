@@ -125,7 +125,7 @@ bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
       "SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}"
     end
     message = event.message.content
-    message = message.gsub(/<@[0-9]{18}>/) { |id| bot.member(event.server, id).nick }
+    message = message.gsub(/<@([0-9]{18})>/) { "@#{bot.member(event.server, Regexp.last_match(1)).display_name}" }
     message = message.gsub(URI::DEFAULT_PARSER.make_regexp(%w[http https]), 'URL省略')
     message = "#{message[0, config.voicevox.max - 1]} 以下略" if message.size >= config.voicevox.max
     say(event.voice, message)
