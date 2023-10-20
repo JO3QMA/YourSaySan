@@ -107,11 +107,11 @@ bot.voice_state_update do |event|
   # 退出時はevent.channelがnilになる
   # BotがVCに参加してない場合、bot.voice(event.server)はnil
   if !event.channel && bot.voice(event.server) && !bot.voice(event.server).channel.users.map(&:current_bot?).include?(false)
-    tc = event.server.text_channels.map(&:id) & @text_channel
+    tc = (event.server.text_channels.map(&:id) & @text_channel)[0]
     @text_channel.delete(tc)
     logger.info('Main') { "Disconnect VC: #{event.server.name}(#{event.old_channel.name})" }
     logger.debug('Main') { "Unmonit TC: #{bot.channel(tc).name}(#{tc})" }
-    bot.voice.destroy(event.old_channel)
+    bot.voice_destroy(event.server)
     bot.send_message(tc, 'See you!')
   end
 end
@@ -125,7 +125,7 @@ bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
       "SV: #{event.server.name}(#{event.channel.name}) USER: #{event.author.name} MSG: #{event.message.content}"
     end
     message = event.message.content
-    message = message.gsub(/<@[0-9]{18}>/) { |id|  bot.member(event.server, id).nick }
+    message = message.gsub(/<@[0-9]{18}>/) { |id| bot.member(event.server, id).nick }
     message = message.gsub(URI::DEFAULT_PARSER.make_regexp(%w[http https]), 'URL省略')
     message = "#{message[0, config.voicevox.max - 1]} 以下略" if message.size >= config.voicevox.max
     say(event.voice, message)
