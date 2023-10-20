@@ -62,7 +62,7 @@ end
 
 # 切断コマンド
 bot.command(:bye, { aliases: [:b], description: config.command.bye.desc, usage: config.command.bye.usage }) do |event|
-  if event.voice_channel
+  if event.voice
     @text_channel.delete(event.channel.id)
     event.voice.destroy
     logger.info('Main') { "Disconnect VC: #{event.server.name}(#{event.user.voice_channel.name})" }
@@ -102,18 +102,29 @@ bot.command(:reconnect) do |event|
 end
 
 # VCからユーザーが0人になった場合、自動退出
-bot.voice_state_update(channel: bot.voices.values.map(&:channel)) do |event|
-  unless event.voice.channel.users.map(&:current_bot).include?(false)
-    @text_channel.delete(event.channel.id)
-    event.voice.destroy
-    logger.info('Main') { "Disconnect VC: #{event.server.name}(#{event.user.voice_channel.name})" }
-    logger.debug('Main') { "Unmonit TC: #{event.channel.name}(#{event.channel.id})" }
-    event.respond('Bye!')
-  end
-end
+#bot.voice_state_update do |event|
+#  # 退出時はevent.channelがnilになる
+#  unless event.channel
+#    unless event.old_channel.users.map(&:current_bot).include?(false)
+#      tc = event.server.channel.map(&:id) & @text_channel # ここでエラー発生
+#      @text_channel.delete(tc)
+#      logger.debug('Main') { "Unmonit TC: #{event.old_channel.name}(#{tc})" }
+#      bot.voice_destroy(event.old_channel)
+#      logger.info('Main') { "Disconnect VC: #{event.server.name}(#{event.user.voice_channel.name})" }
+#      bot.send_message(tc, 'See you!')
+#    end
+#    nil
+#  end
+  # unless event.channel.users.map(&:current_bot).include?(false)
+  #   tc = event.server.channel.map(&:id) & @text_channel
+  #   @text_channel.delete(tc)
+  #   logger.debug('Main') { "Unmonit TC: #{event.channel.name}(#{event.channel.id})" }
+  #   bot.voice_destroy(event.channel)
+  #   logger.info('Main') { "Disconnect VC: #{event.server.name}(#{event.user.voice_channel.name})" }
+  #   bot.send_message(tc, 'See you!')
+  # end
+#end
 
-bot.heartbeat do |event|
-end
 
 # メッセージ受信用イベント(@text_channelに入っているテキストチャンネルからのみ受信)
 bot.message(start_with: not!(config.bot.prefix), in: @text_channel) do |event|
