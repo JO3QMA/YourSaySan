@@ -80,7 +80,7 @@ end
 
 # Debug用 evalコマンド
 bot.command(:eval, help_available: false) do |event, *code|
-  break unless event.user.id == 196_247_874_466_480_128
+  break unless event.user.id == config.bot.owner
 
   begin
     eval code.join(' ')

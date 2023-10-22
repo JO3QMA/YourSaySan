@@ -2,4 +2,9 @@ bot:
   token: ''
   client_id: ''
   prefix: ''
-    status: 'Reading Bot'
+  status: 'Reading Bot'
+  owner: 123456789012345678
+
+voicevox:
+  max: 50
+  host: 'http://voicevox:50021'
