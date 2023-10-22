@@ -51,7 +51,7 @@ bot.command(:summon,
 end
 
 # 再生中の音声を止める
-bot.command(:stop, { aliases: [:skip] }) do |event|
+bot.command(:stop, { aliases: [:skip], description: config.command.stop.desc, usage: config.command.stop.usage }) do |event|
   if event.voice
     event.voice.stop_playing if event.voice.playing?
     nil
@@ -91,7 +91,7 @@ bot.command(:eval, help_available: false) do |event, *code|
 end
 
 # VCに再接続するコマンド
-bot.command(:reconnect) do |event|
+bot.command(:reconnect, { aliases: [:re], description: config.command.reconnect.desc, usage: config.command.reconnect.usage }) do |event|
   if event.voice
     channel = event.voice.channel
     event.voice.destroy
