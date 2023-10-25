@@ -11,6 +11,7 @@ require_relative './core/voicevox'
 config = Config.load_and_set_settings('./config.yml', './command.yml')
 
 # init
+Discordrb::LOGGER.streams << File.open('bot.log', 'a')
 bot = Discordrb::Commands::CommandBot.new(
   token: config.bot.token,
   client_id: config.bot.client_id,
