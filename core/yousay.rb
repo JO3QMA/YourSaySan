@@ -7,15 +7,18 @@ require 'config'
 # Discord Botのモジュール
 module YouSaySan
   CONFIG = onfig.load_and_set_settings('./config.yml', './command.yml')
-  TOKEN = CONFIG.bot.token
-  CLIENT_ID = CONFIG.bot.client_id
-  PREFIX = CONFIG.bot.prefix
+  TOKEN = BOT::CONFIG.bot.token
+  CLIENT_ID = BOT::CONFIG.bot.client_id
+  PREFIX = BOT::CONFIG.bot.prefix
   BOT.Discordrb::Commands::CommandBot.new(
     token: TOKEN,
     client_id: CLIENT_ID,
     prefix: PREFIX,
     ignore_bots: true
   )
+
+  # Const
+  @text_channels = []
 
   # Module Loader
   def self.load_module(cls, path)
@@ -25,7 +28,7 @@ module YouSaySan
       load file
     end
     new_module.constants.each do |mod|
-      BOT.include! new_module.const_get(mod)
+      BOT.include!(new_module.const_get(mod))
     end
   end
 
