@@ -3,14 +3,19 @@
 require 'rubygems'
 require 'bundler/setup'
 require 'config'
+require 'discordrb'
+
+require_relative './voicevox'
 
 # Discord Botのモジュール
 module YouSaySan
-  CONFIG = onfig.load_and_set_settings('./config.yml', './command.yml')
-  TOKEN = BOT::CONFIG.bot.token
-  CLIENT_ID = BOT::CONFIG.bot.client_id
-  PREFIX = BOT::CONFIG.bot.prefix
-  BOT.Discordrb::Commands::CommandBot.new(
+  CONFIG = Config.load_and_set_settings('./config.yml', './command.yml')
+  TOKEN = CONFIG.bot.token
+  CLIENT_ID = CONFIG.bot.client_id
+  PREFIX = CONFIG.bot.prefix
+  Discordrb::LOGGER.streams << File.open('bot2.log', 'a')
+  # Discordrb::LOGGER.mode = :debug
+  BOT = Discordrb::Commands::CommandBot.new(
     token: TOKEN,
     client_id: CLIENT_ID,
     prefix: PREFIX,

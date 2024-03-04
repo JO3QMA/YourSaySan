@@ -6,9 +6,10 @@ module YouSaySan
     # Return Ping-Pong.
     # This is a simple way to check whether a bot is dead or alive.
     module Ready
-      extend Discordrb::Commands::EventContainer
+      extend Discordrb::EventContainer
       ready do |event|
         event.bot.game = BOT::CONFIG.bot.status
+        info('Bot is Ready!')
       end
     end
   end

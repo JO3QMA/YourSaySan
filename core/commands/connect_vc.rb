@@ -7,6 +7,7 @@ module YouSaySan
     module Summon
       extend Discordrb::Commands::CommandContainer
       command(:summon, { aliases: [:s] }) do |event|
+        debug("SV(CH): #{event.server.name}(#{event.channel.name}), USER: #{event.auther.name}, CMD: #{event.message.content}")
         if event.user.voice_channel
           if !event.voice
             BOT.voice_connect(event.user.voice_channel)
@@ -26,6 +27,7 @@ module YouSaySan
     module Bye
       extend Discordrb::Commands::CommandContainer
       command(:bye, { aliases: [:b] }) do |event|
+        debug("SV(CH): #{event.server.name}(#{event.channel.name}), USER: #{event.auther.name}, CMD: #{event.message.content}")
         if event.voice
           @text_channels.delete(event.channel.id)
           event.voice.destroy
@@ -38,6 +40,7 @@ module YouSaySan
     module Reconnect
       extend Discordrb::Commands::CommandContainer
       comand(:reconnect, { aliases: [:re] }) do |event|
+        debug("SV(CH): #{event.server.name}(#{event.channel.name}), USER: #{event.auther.name}, CMD: #{event.message.content}")
         if event.voice
           vc = event.voice.channel
           event.voice.destroy

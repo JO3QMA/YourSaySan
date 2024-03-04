@@ -6,7 +6,7 @@ module YouSaySan
     # Return Ping-Pong.
     # This is a simple way to check whether a bot is dead or alive.
     module Read
-      extend Discordrb::Commands::EventContainer
+      extend Discordrb::EventContainer
       message(start_with: not!(BOT::CONFIG.bot.prefix), in: @text_channels) do |event|
         if event.voice
           next if event.message.content == '' # 画像など本文がない投稿を弾く

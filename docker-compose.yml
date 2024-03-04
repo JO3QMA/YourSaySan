@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  voicevox:
+    image: voicevox/voicevox_engine:cpu-latest
+
+  yousaysan:
+    build: ./
