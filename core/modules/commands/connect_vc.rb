@@ -39,7 +39,7 @@ module YouSaySan
     # Reconnect to VC command.
     module Reconnect
       extend Discordrb::Commands::CommandContainer
-      comand(:reconnect, { aliases: [:re] }) do |event|
+      command(:reconnect, { aliases: [:re] }) do |event|
         debug("SV(CH): #{event.server.name}(#{event.channel.name}), USER: #{event.auther.name}, CMD: #{event.message.content}")
         if event.voice
           vc = event.voice.channel

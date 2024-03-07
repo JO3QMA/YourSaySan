@@ -30,6 +30,7 @@ module YouSaySan
     new_module = Module.new
     const_set(cls.to_sym, new_module)
     Dir["core/modules/#{path}/*.rb"].each do |file|
+      puts "Load module : #{file}"
       load file
     end
     new_module.constants.each do |mod|
