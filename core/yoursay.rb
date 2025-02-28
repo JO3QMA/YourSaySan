@@ -24,10 +24,17 @@ module YouSaySan
     prefix: PREFIX,
     ignore_bots: true
   )
+  
+  @text_channels = []
+  @voicevox = VoiceVox.new(CONFIG, Logger.new('bot.log', 'daily').tap { |l| l.datetime_format = '%Y-%m-%d %H:%M:%S' })
+
+  class << self
+    attr_accessor :text_channels, :voicevox
+  end
 
   # Module Loader
   def self.load_module(cls, path)
-    puts 'Init実行開始'
+    puts "Init実行開始: #{cls}"
     new_module = Module.new
     const_set(cls.to_sym, new_module)
     Dir["#{MODULE_PATH}/#{path}/*.rb"].each do |file|
@@ -36,8 +43,15 @@ module YouSaySan
     rescue StandardError => e
       puts "Error loading module #{file}: #{e.message}"
     end
+    
+    # EventContainerとCommandContainerを分ける
     new_module.constants.each do |mod|
-      BOT.include!(new_module.const_get(mod))
+      mod_instance = new_module.const_get(mod)
+      if mod_instance.is_a?(Class) && mod_instance.ancestors.include?(Discordrb::Commands::CommandContainer)
+        BOT.include!(mod_instance)
+      elsif mod_instance.is_a?(Module) && mod_instance.ancestors.include?(Discordrb::EventContainer)
+        BOT.include!(mod_instance)
+      end
     end
   end
 
@@ -51,6 +65,13 @@ module YouSaySan
     puts 'RUN実行された'
     init_bot
     puts 'init終わった'
+    
+    # Bot Init
+    BOT.ready do
+      puts 'Bot is ready'
+      BOT.game = CONFIG.bot.status
+    end
+      
     BOT.run
     puts 'bot実行された'
   end

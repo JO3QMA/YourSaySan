@@ -8,8 +8,8 @@ module YouSaySan
     module Ready
       extend Discordrb::EventContainer
       ready do |event|
-        event.bot.game = BOT::CONFIG.bot.status
-        info('Bot is Ready!')
+        event.bot.game = YouSaySan::CONFIG.bot.status
+        puts('Bot is Ready!')
       end
     end
   end
