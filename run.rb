@@ -1,5 +1,4 @@
 # frozen_string_literal: true
 
-require_relative './core/yoursay'
-
-YouSaySan.run
+require_relative 'core/yoursay'
+YourSaySan.run
