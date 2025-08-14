@@ -1,10 +1,10 @@
 bot:
-  token: ''
-  client_id: ''
-  prefix: ''
-  status: 'Reading Bot'
-  owner: 123456789012345678
+  token: <%= ENV['DISCORD_BOT_TOKEN'] %>
+  client_id: <%= ENV['DISCORD_CLIENT_ID'] %>
+  prefix: '!'
+  status: '[TESTING] 読み上げBot'
+  owner: <%= ENV['DISCORD_OWNER_ID'] || 123456789012345678 %>
 
 voicevox:
   max: 50
-  host: 'http://voicevox:50021'
+  host: <%= ENV['VOICEVOX_HOST'] || 'http://voicevox:50021' %>
