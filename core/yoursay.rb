@@ -2,10 +2,17 @@
 
 require 'discordrb'
 require 'config'
+require 'yaml'
+require 'erb'
 
 # YourSaySanモジュール
 module YourSaySan
-  CONFIG = Config.load_and_set_settings('config.yml')
+  # Load config.yml with ERB + YAML so ENV values can be embedded
+  CONFIG = begin
+    erb = ERB.new(File.read('config.yml'))
+    yaml = YAML.safe_load(erb.result, aliases: true)
+    Config.load_and_set_settings(yaml)
+  end
   BOT = Discordrb::Commands::CommandBot.new(
     token: CONFIG.bot.token,
     client_id: CONFIG.bot.client_id,
