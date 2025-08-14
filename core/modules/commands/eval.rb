@@ -7,15 +7,15 @@ module YourSaySan
       extend Discordrb::Commands::CommandContainer
 
       command :eval do |event, *code|
-        if event.user.id == YourSaySan::CONFIG.bot.owner
-          begin
-            result = eval code.join(' ')
-            result.to_s
-          rescue StandardError => e
-            "Error: #{e}"
-          end
+        return unless event.user.id == YourSaySan::CONFIG.bot.owner
+
+        begin
+          result = eval code.join(' ')
+          event.respond result.to_s
+        rescue StandardError => e
+          event.respond "Error: #{e.message}"
         end
-        event.respond result.to_s
+        nil
       end
     end
   end
