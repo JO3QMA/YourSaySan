@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Command Module
-module YouSaySan
+module YourSaySan
   module Commands
     # Command to interrupt someone speaking
     module Stop
