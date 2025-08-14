@@ -2,7 +2,7 @@
 
 source 'https://rubygems.org'
 
-ruby '3.4.2'
+ruby '>= 3.4.2', '< 3.5'
 
 # gem "rails"
 gem 'config'
