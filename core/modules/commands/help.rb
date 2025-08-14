@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Command Module
-module YouSaySan
+module YourSaySan
   module Commands
     # Help command
     module Help
