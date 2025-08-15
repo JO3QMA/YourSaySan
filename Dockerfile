@@ -10,7 +10,7 @@ RUN bundle config set path vendor/bundle
 
 # Optional audio tooling & runtime libs for Discord voice
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg opus-tools libopus0 libsodium23 && rm -rf /var/lib/apt/lists/*
+    ffmpeg opus-tools libopus0 libopus-dev libsodium23 && rm -rf /var/lib/apt/lists/*
 
 # ==================================
 # 2. 開発環境用ステージ
