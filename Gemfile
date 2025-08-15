@@ -15,3 +15,7 @@ group :development do
   gem 'debug', require: false
   gem 'ruby-lsp', require: false
 end
+
+group :test do
+  gem 'rspec'
+end

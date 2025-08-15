@@ -58,7 +58,10 @@ module YourSaySan
       require file
     end
     Events.constants.each do |mod|
-      BOT.include! Events.const_get mod
+      mod_ref = Events.const_get mod
+      BOT.include! mod_ref
+      # イベントモジュールが setup を提供している場合のみ呼ぶ（テストで差し替え可能）
+      mod_ref.setup(BOT, @text_channels, @voicevox, CONFIG) if mod_ref.respond_to?(:setup)
     end
   end
 
