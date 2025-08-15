@@ -8,9 +8,9 @@ WORKDIR /app
 # Bundler のインストール先を固定（キャッシュ安定化）
 RUN bundle config set path vendor/bundle
 
-# Optional audio tooling; adjust as needed
+# Optional audio tooling & runtime libs for Discord voice
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg opus-tools && rm -rf /var/lib/apt/lists/*
+    ffmpeg opus-tools libopus0 libsodium23 && rm -rf /var/lib/apt/lists/*
 
 # ==================================
 # 2. 開発環境用ステージ

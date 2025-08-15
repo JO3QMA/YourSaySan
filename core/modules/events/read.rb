@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 # Command Module
-module YouSaySan
+module YourSaySan
   module Events
     module Read
       extend Discordrb::EventContainer
+
+      require 'tempfile'
 
       def self.setup(bot, text_channels, voicevox, config)
         bot.message(start_with: not!(bot.prefix), in: text_channels) do |event|
@@ -33,7 +35,7 @@ module YouSaySan
         end
       end
       
-      setup(YouSaySan::BOT, YouSaySan.text_channels, YouSaySan.voicevox, YouSaySan::CONFIG)
+      setup(YourSaySan::BOT, YourSaySan.text_channels, YourSaySan.voicevox, YourSaySan::CONFIG)
     end
   end
 end

@@ -4,6 +4,8 @@ require 'discordrb'
 require 'config'
 require 'yaml'
 require 'erb'
+require 'logger'
+require_relative 'voicevox'
 
 # YourSaySanモジュール
 module YourSaySan
@@ -24,6 +26,18 @@ module YourSaySan
 
   module Commands; end
   module Events; end
+
+  # Shared states
+  @text_channels = []
+  @voicevox = VoiceVox.new(CONFIG, Logger.new($stdout)) rescue nil
+
+  def self.text_channels
+    @text_channels
+  end
+
+  def self.voicevox
+    @voicevox
+  end
 
   # コマンドとイベントを登録する
   def self.load_modules
