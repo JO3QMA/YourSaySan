@@ -1,0 +1,32 @@
+{
+  "name": "YourSaySan Dev",
+  "dockerComposeFile": [
+    "compose.devcontainer.yml"
+  ],
+  "service": "yousaysan",
+  "workspaceFolder": "/app",
+  "overrideCommand": true,
+  "remoteEnv": {
+    "RACK_ENV": "development",
+    "BUNDLE_PATH": "/app/vendor/bundle"
+  },
+  "forwardPorts": [50021],
+  "postCreateCommand": "bash -lc 'bundle config set path vendor/bundle && bundle install && if [ ! -f config.yml ]; then cp config.sample.yml config.yml; fi && if [ ! -f .env ]; then printf "DISCORD_BOT_TOKEN=\nDISCORD_CLIENT_ID=\nDISCORD_OWNER_ID=\n" > .env; fi'",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "root",
+      "installZsh": false,
+      "upgradePackages": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "castwide.solargraph",
+        "rebornix.ruby",
+        "wingrunr21.vscode-ruby"
+      ]
+    }
+  }
+}
