@@ -12,5 +12,6 @@ gem 'wavefile'
 gem 'dotenv'
 
 group :development do
+  gem 'debug', require: false
   gem 'ruby-lsp', require: false
 end

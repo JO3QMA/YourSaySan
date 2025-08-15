@@ -5,6 +5,10 @@ GEM
     config (5.6.1)
       deep_merge (~> 1.2, >= 1.2.1)
       ostruct
+    date (3.4.1)
+    debug (1.11.0)
+      irb (~> 1.10)
+      reline (>= 0.3.8)
     deep_merge (1.2.2)
     discordrb (3.5.0)
       discordrb-webhooks (~> 3.5.0)
@@ -16,11 +20,17 @@ GEM
       rest-client (>= 2.0.0)
     domain_name (0.6.20240107)
     dotenv (3.1.8)
+    erb (5.0.2)
     event_emitter (0.2.6)
     ffi (1.17.2-x86_64-linux-gnu)
     http-accept (1.7.0)
     http-cookie (1.0.8)
       domain_name (~> 0.5)
+    io-console (0.8.1)
+    irb (1.15.2)
+      pp (>= 0.6.0)
+      rdoc (>= 4.0.0)
+      reline (>= 0.4.2)
     language_server-protocol (3.17.0.5)
     logger (1.7.0)
     mime-types (3.7.0)
@@ -32,9 +42,20 @@ GEM
     opus-ruby (1.0.1)
       ffi
     ostruct (0.6.3)
+    pp (0.6.2)
+      prettyprint
+    prettyprint (0.2.0)
     prism (1.4.0)
+    psych (5.2.6)
+      date
+      stringio
     rbs (3.9.4)
       logger
+    rdoc (6.14.2)
+      erb
+      psych (>= 4.0.0)
+    reline (0.6.2)
+      io-console (~> 0.5)
     rest-client (2.1.0)
       http-accept (>= 1.7.0, < 2.0)
       http-cookie (>= 1.0.2, < 2.0)
@@ -44,6 +65,7 @@ GEM
       language_server-protocol (~> 3.17.0)
       prism (>= 1.2, < 2.0)
       rbs (>= 3, < 5)
+    stringio (3.1.7)
     wavefile (1.1.2)
     websocket (1.2.11)
     websocket-client-simple (0.9.0)
@@ -57,6 +79,7 @@ PLATFORMS
 
 DEPENDENCIES
   config
+  debug
   discordrb
   dotenv
   opus-ruby

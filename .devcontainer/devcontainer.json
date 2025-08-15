@@ -25,7 +25,9 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "Shopify.ruby-lsp"
+        "Shopify.ruby-lsp",
+        "Shopify.ruby-extensions-pack",
+        "KoichiSasada.vscode-rdbg"
       ]
     }
   }
