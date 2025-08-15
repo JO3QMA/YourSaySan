@@ -70,16 +70,32 @@ bot:
   client_id: 'YOUR_CLIENT_ID'   # Discord BotのClient ID
   prefix: '!'                   # コマンドのプレフィックス
   status: '[TESTING] 読み上げBot' # Botのステータス
+  auto_reconnect:
+    enabled: true               # 自動再接続機能を有効にする
+    heartbeat_timeout: 120      # ハートビートが途絶えてから再接続するまでの秒数
+    check_interval: 60          # 接続状態チェックの間隔（秒）
+    retry_delay: 30             # 再接続失敗時の再試行間隔（秒）
 
 voicevox:
   max: 50                      # 最大文字数
   host: 'http://voicevox:50021' # Voicevox Engineのホスト
 ```
 
-## コマンド
+## 機能
+
+### 自動再接続機能
+
+Cloudflare WorkersのアップデートなどによるWebSocket接続断を自動的に検知し、再接続を行います。
+
+- **接続断検知**: WebSocket接続が切断された際に自動的に検知
+- **ハートビート監視**: Discordからのハートビートを監視し、途絶えた場合に再接続
+- **定期的な接続状態チェック**: 1分ごとに接続状態をチェック
+- **指数バックオフ**: 再接続失敗時は徐々に待機時間を延長
+
+### コマンド
 
 *   `!ping`: Botの死活確認を行います。
 *   `!summon`: 読み上げBotをVCに参加させます。
 *   `!bye`: 読み上げBotをVCから退出させます。
-*   `!reconnect`: Discordが調子悪いときなどに、再接続します。
+*   `/reconnect`: Discordが調子悪いときなどに、手動で再接続します。
 
