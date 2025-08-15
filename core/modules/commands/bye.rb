@@ -4,14 +4,18 @@ module YourSaySan
   module Commands
     # Byeコマンドモジュール
     module Bye
-      extend Discordrb::Commands::CommandContainer
+      extend Discordrb::EventContainer
 
-      command :bye do |event|
-        if event.author.voice_channel
+      def self.register_slash_command(bot)
+        bot.register_application_command(:bye, '読み上げBotを切断します')
+      end
+
+      application_command :bye do |event|
+        if event.user.voice_channel
           YourSaySan::BOT.voice_destroy(event.server)
-          'ボイスチャットから切断しました。'
+          event.respond(content: 'ボイスチャットから切断しました。', ephemeral: true)
         else
-          'ボイスチャットに参加していません。'
+          event.respond(content: 'ボイスチャットに参加していません。', ephemeral: true)
         end
       end
     end

@@ -1,7 +1,7 @@
 command:
   help:
     desc: 'ヘルプを表示します。'
-    usage: '`help [command]` で使用方法を表示します。'
+    usage: '`/help [command]` で使用方法を表示します。'
   summon:
     desc: '読み上げBotを呼び出します。'
     usage: '引数は必要ありません。'
@@ -17,3 +17,6 @@ command:
   reconnect:
     desc: '読み上げBotを再接続します。読み上げされない場合に有効かもしれません。'
     usage: '引数は必要ありません。'
+  eval:
+    desc: 'コードを実行します（開発者用）。'
+    usage: '`/eval code` でコードを実行します。'

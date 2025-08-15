@@ -10,7 +10,10 @@ module YourSaySan
       require 'uri'
 
       def self.setup(bot, text_channels, voicevox, config)
-        bot.message(start_with: not!(bot.prefix), in: text_channels) do |event|
+        bot.message(in: text_channels) do |event|
+          # スラッシュコマンドの場合は読み上げない
+          next if event.message.content.start_with?('/')
+          
           if event.voice
             next if event.message.content == '' # 画像など本文がない投稿を弾く
 

@@ -15,10 +15,9 @@ module YourSaySan
     yaml = YAML.safe_load(erb.result, aliases: true)
     Config.load_and_set_settings(yaml)
   end
-  BOT = Discordrb::Commands::CommandBot.new(
+  BOT = Discordrb::Bot.new(
     token: CONFIG.bot.token,
     client_id: CONFIG.bot.client_id,
-    prefix: CONFIG.bot.prefix,
     ignore_bots: true
   )
 
@@ -63,6 +62,22 @@ module YourSaySan
       # イベントモジュールが setup を提供している場合のみ呼ぶ（テストで差し替え可能）
       mod_ref.setup(BOT, @text_channels, @voicevox, CONFIG) if mod_ref.respond_to?(:setup)
     end
+
+    # 各コマンドモジュールのスラッシュコマンド登録を実行
+    register_slash_commands_from_modules
+  end
+
+  def self.register_slash_commands_from_modules
+    puts '[Bot] スラッシュコマンドの登録開始'
+    
+    Commands.constants.each do |mod|
+      mod_ref = Commands.const_get mod
+      if mod_ref.respond_to?(:register_slash_command)
+        mod_ref.register_slash_command(BOT)
+      end
+    end
+
+    puts '[Bot] スラッシュコマンドの登録完了'
   end
 
   def self.run
