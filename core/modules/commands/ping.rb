@@ -4,10 +4,14 @@ module YourSaySan
   module Commands
     # Pingコマンドモジュール
     module Ping
-      extend Discordrb::Commands::CommandContainer
+      extend Discordrb::EventContainer
 
-      command :ping do |event|
-        event.respond 'Pong!'
+      def self.register_slash_command(bot)
+        bot.register_application_command(:ping, 'Pongを返します')
+      end
+
+      application_command :ping do |event|
+        event.respond(content: 'Pong!', ephemeral: true)
       end
     end
   end

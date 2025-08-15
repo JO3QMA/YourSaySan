@@ -4,18 +4,33 @@ module YourSaySan
   module Commands
     # Evalコマンドモジュール
     module Eval
-      extend Discordrb::Commands::CommandContainer
+      extend Discordrb::EventContainer
 
-      command :eval do |event, *code|
+      def self.register_slash_command(bot)
+        bot.register_application_command(:eval, 'コードを実行します（開発者用）') do |cmd|
+          cmd.string(:code, '実行するコード', required: true)
+        end
+      end
+
+      application_command :eval do |event|
         return unless event.user.id == YourSaySan::CONFIG.bot.owner
 
-        begin
-          result = eval code.join(' ')
-          event.respond result.to_s
-        rescue StandardError => e
-          event.respond "Error: #{e.message}"
+        # オプションを取得（複数の方法を試す）
+        code = nil
+        if event.respond_to?(:options) && event.options.is_a?(Hash)
+          code = event.options['code']
+        elsif event.respond_to?(:data) && event.data&.options
+          code = event.data.options.find { |opt| opt.name == 'code' }&.value
         end
-        nil
+        
+        return event.respond(content: 'コードが指定されていません。', ephemeral: true) unless code
+
+        begin
+          result = eval code
+          event.respond(content: "実行結果: #{result.to_s}", ephemeral: true)
+        rescue StandardError => e
+          event.respond(content: "エラー: #{e.message}", ephemeral: true)
+        end
       end
     end
   end
