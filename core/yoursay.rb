@@ -1,57 +1,75 @@
 # frozen_string_literal: true
 
-require 'rubygems'
-require 'bundler/setup'
-require 'config'
 require 'discordrb'
-require 'pathname'
+require 'config'
+require 'yaml'
+require 'erb'
+require 'logger'
+require_relative 'voicevox'
 
-require_relative './voicevox'
-
-# Discord Botのモジュール
-module YouSaySan
-  CONFIG = Config.load_and_set_settings('./config.yml', './command.yml')
-  TOKEN = CONFIG.bot.token
-  CLIENT_ID = CONFIG.bot.client_id
-  PREFIX = CONFIG.bot.prefix
-  MODULE_PATH = CONFIG.bot.module_path || 'core/modules'
-
-  Discordrb::LOGGER.streams << File.open('bot2.log', 'a')
-  # Discordrb::LOGGER.mode = :debug
+# YourSaySanモジュール
+module YourSaySan
+  # Load config.yml with ERB + YAML so ENV values can be embedded
+  CONFIG = begin
+    erb = ERB.new(File.read('config.yml'))
+    yaml = YAML.safe_load(erb.result, aliases: true)
+    Config.load_and_set_settings(yaml)
+  end
   BOT = Discordrb::Commands::CommandBot.new(
-    token: TOKEN,
-    client_id: CLIENT_ID,
-    prefix: PREFIX,
+    token: CONFIG.bot.token,
+    client_id: CONFIG.bot.client_id,
+    prefix: CONFIG.bot.prefix,
     ignore_bots: true
   )
 
-  # Module Loader
-  def self.load_module(cls, path)
-    puts 'Init実行開始'
-    new_module = Module.new
-    const_set(cls.to_sym, new_module)
-    Dir["#{MODULE_PATH}/#{path}/*.rb"].each do |file|
-      puts "Load module : #{file}"
-      load file
-    rescue StandardError => e
-      puts "Error loading module #{file}: #{e.message}"
-    end
-    new_module.constants.each do |mod|
-      BOT.include!(new_module.const_get(mod))
-    end
+  # Module define
+
+  module Commands; end
+  module Events; end
+
+  # Shared states
+  @text_channels = []
+  @voicevox = VoiceVox.new(CONFIG, Logger.new($stdout)) rescue nil
+
+  def self.text_channels
+    @text_channels
   end
 
-  def self.init_bot
-    # Load Module
-    load_module(:Commands, 'commands')
-    load_module(:Events, 'events')
+  def self.voicevox
+    @voicevox
+  end
+
+  # コマンドとイベントを登録する
+  def self.load_modules
+    puts '[Bot] モジュールの読み込み開始'
+
+    # Bot Commands
+    Dir['./core/modules/commands/*.rb'].sort.each do |file|
+      puts "[Bot] Load Command: #{file}"
+      require file
+    end
+    Commands.constants.each do |mod|
+      BOT.include! Commands.const_get mod
+    end
+
+    # Bot Events
+    Dir['./core/modules/events/*.rb'].sort.each do |file|
+      puts "[Bot] Load Event: #{file}"
+      require file
+    end
+    Events.constants.each do |mod|
+      mod_ref = Events.const_get mod
+      BOT.include! mod_ref
+      # イベントモジュールが setup を提供している場合のみ呼ぶ（テストで差し替え可能）
+      mod_ref.setup(BOT, @text_channels, @voicevox, CONFIG) if mod_ref.respond_to?(:setup)
+    end
   end
 
   def self.run
-    puts 'RUN実行された'
-    init_bot
-    puts 'init終わった'
+    load_modules
     BOT.run
-    puts 'bot実行された'
+  rescue StandardError => e
+    puts "Bot実行中にエラーが発生しました: #{e.message}"
+    puts e.backtrace.join("\n")
   end
 end

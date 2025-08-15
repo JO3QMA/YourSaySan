@@ -1,20 +1,21 @@
 # frozen_string_literal: true
 
-# Command Module
-module YouSaySan
+module YourSaySan
   module Commands
-    # eval command that executes the input content
+    # Evalコマンドモジュール
     module Eval
       extend Discordrb::Commands::CommandContainer
-      command(:eval, { aliases: [:e], help_available: false }) do |event, *code|
-        break unless event.user.id == BOT::CONFIG.bot.owner
+
+      command :eval do |event, *code|
+        return unless event.user.id == YourSaySan::CONFIG.bot.owner
 
         begin
-          eval code.join(' ')
-        rescue StandardError
-          event.respond('エラーが発生しました。')
-          event.respond($!)
+          result = eval code.join(' ')
+          event.respond result.to_s
+        rescue StandardError => e
+          event.respond "Error: #{e.message}"
         end
+        nil
       end
     end
   end

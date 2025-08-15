@@ -1,0 +1,34 @@
+{
+  "name": "YourSaySan Dev",
+  "dockerComposeFile": [
+    "compose.devcontainer.yml"
+  ],
+  "service": "yousaysan",
+  "workspaceFolder": "/app",
+  "overrideCommand": true,
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && bundle install --binstubs",
+
+  "remoteEnv": {
+    "RACK_ENV": "development",
+    "BUNDLE_PATH": "/app/vendor/bundle",
+    "PATH": "/app/bin:${containerEnv:PATH}"
+  },
+
+  "forwardPorts": [50021],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "root",
+      "installZsh": false,
+      "upgradePackages": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "Shopify.ruby-extensions-pack",
+        "KoichiSasada.vscode-rdbg"
+      ]
+    }
+  }
+}

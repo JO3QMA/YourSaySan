@@ -38,14 +38,21 @@ class VoiceVox
     uri = URI.join(@host, endpoint)
     uri.query = URI.encode_www_form(query)
     header = { 'Content-Type' => 'application/json' }
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.open_timeout = 3
+    http.read_timeout = 10
+    request = Net::HTTP::Post.new(uri.request_uri, header)
+    request.body = data
     begin
-      res = Net::HTTP.post(uri, data, header)
+      res = http.request(request)
       res.value
-    rescue Timeout::Error
-      @logger.error('VoiveVox') { 'VoiceVox is timed out.' }
+      res
+    rescue Net::OpenTimeout, Net::ReadTimeout
+      @logger.error('VoiceVox') { 'VoiceVox request timed out.' }
+      nil
     rescue StandardError => e
-      @logger.error('VoiceVox') { e.response }
+      @logger.error('VoiceVox') { e.message }
+      nil
     end
-    res
   end
 end

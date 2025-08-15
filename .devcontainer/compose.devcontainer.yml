@@ -1,0 +1,21 @@
+services:
+  yousaysan:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ..:/app:cached
+      - bundle-cache:/app/vendor/bundle
+    command: bash -lc "sleep infinity"
+    environment:
+      - RACK_ENV=development
+      - VOICEVOX_HOST=http://voicevox:50021
+    depends_on:
+      - voicevox
+  voicevox:
+    image: voicevox/voicevox_engine:cpu-latest
+    ports:
+      - "50021:50021"
+volumes:
+  bundle-cache:

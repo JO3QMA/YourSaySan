@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
-require_relative './core/yoursay'
-
-YouSaySan.run
+require 'bundler/setup'
+require 'dotenv/load'
+require_relative 'core/yoursay'
+YourSaySan.run

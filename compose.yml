@@ -2,6 +2,14 @@ version: '3.8'
 services:
   voicevox:
     image: voicevox/voicevox_engine:cpu-latest
+    ports:
+      - "50021:50021"
 
   yousaysan:
-    build: ./
+    build:
+      context: ./
+      target: production
+    depends_on:
+      - voicevox
+    env_file:
+      - .env
