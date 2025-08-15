@@ -1,6 +1,34 @@
-/squashfs-root
-config.yml
-bot.log
-bot.log.*
+# env
 .env
-vendor/
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# bundler
+/vendor/bundle
+.bundle/
+/bin
+
+# ruby tools
+/.ruby-lsp/
+/doc/
+/.yardoc
+/.irb_history
+/.byebug_history
+
+# app-local config
+/config.yml
+
+# editor/IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# reports
+/coverage/
