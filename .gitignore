@@ -3,3 +3,4 @@ config.yml
 bot.log
 bot.log.*
 .env
+vendor/
