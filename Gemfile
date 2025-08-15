@@ -13,5 +13,4 @@ gem 'dotenv'
 
 group :development do
   gem 'ruby-lsp', require: false
-  gem 'solargraph', require: false
 end
