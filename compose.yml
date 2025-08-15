@@ -4,12 +4,37 @@ services:
     image: voicevox/voicevox_engine:cpu-latest
     ports:
       - "50021:50021"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50021/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   yousaysan:
     build:
       context: ./
       target: production
     depends_on:
-      - voicevox
+      voicevox:
+        condition: service_healthy
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "ruby.*run.rb"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
