@@ -5,12 +5,20 @@ services:
     ports:
       - "50021:50021"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:50021/version"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "timeout 10 bash -c 'until echo > /dev/tcp/localhost/50021; do sleep 1; done' || exit 1"]
+      interval: 90s
+      timeout: 30s
       retries: 3
-      start_period: 40s
+      start_period: 180s
     restart: unless-stopped
+    environment:
+      - VOICEVOX_CORE_VERSION=0.14.4
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     logging:
       driver: "json-file"
       options:
