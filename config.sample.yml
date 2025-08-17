@@ -13,3 +13,8 @@ bot:
 voicevox:
   max: 50
   host: <%= ENV['VOICEVOX_HOST'] || 'http://voicevox:50021' %>
+
+redis:
+  host: <%= ENV['REDIS_HOST'] || 'redis' %>
+  port: <%= ENV['REDIS_PORT'] || 6379 %>
+  db: <%= ENV['REDIS_DB'] || 0 %>

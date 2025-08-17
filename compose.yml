@@ -1,5 +1,16 @@
 version: '3.8'
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   voicevox:
     image: voicevox/voicevox_engine:cpu-latest
     ports:
@@ -32,6 +43,8 @@ services:
     depends_on:
       voicevox:
         condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     healthcheck:
