@@ -46,9 +46,9 @@ module YourSaySan
         max_id = speakers.keys.max
         embed = Discordrb::Webhooks::Embed.new(
           title: "利用可能な話者一覧",
-          description: "現在の設定: **#{current_speaker_id}: #{current_speaker_name}**\n\n```\n#{speaker_list}\n```",
+          description: "現在の設定: **#{current_speaker_id}: #{current_speaker_name}**\n\n```\n#{speaker_list}\n```\n\n`/speaker 話者ID（0-#{max_id}）` で話者を設定できます。",
           color: 0x00ff00,
-          footer: { text: "ページ #{page}/#{total_pages}（全#{speakers.length}件）。`/speaker 話者ID（0-#{max_id}）`で話者を設定できます。" }
+          footer: { text: "ページ #{page}/#{total_pages}（全#{speakers.length}件）" }
         )
 
         # ページネーション情報を追加
