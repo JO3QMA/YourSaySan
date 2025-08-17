@@ -33,12 +33,14 @@ class SpeakerManager
 
   # VoiceVoxのAPIから利用可能な話者の一覧を取得
   def get_available_speakers
+    return nil if @voicevox.nil?
     @voicevox.get_speakers
   end
 
   # 話者IDが有効かチェック
   def valid_speaker?(speaker_id)
     speakers = get_available_speakers
-    speakers && speakers.key?(speaker_id.to_i)
+    return false if speakers.nil?
+    speakers.key?(speaker_id.to_i)
   end
 end

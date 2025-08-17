@@ -14,6 +14,12 @@ module YourSaySan
 
       application_command :speaker_list do |event|
         speaker_manager = YourSaySan.speaker_manager
+        
+        if speaker_manager.nil?
+          event.respond(content: "話者マネージャーが初期化されていません。VoiceVoxの設定を確認してください。", ephemeral: true)
+          return
+        end
+        
         speakers = speaker_manager.get_available_speakers
 
         if speakers.nil?
