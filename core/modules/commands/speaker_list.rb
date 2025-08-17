@@ -16,6 +16,11 @@ module YourSaySan
         speaker_manager = YourSaySan.speaker_manager
         speakers = speaker_manager.get_available_speakers
 
+        if speakers.nil?
+          event.respond(content: "VoiceVoxのAPIに接続できません。VoiceVoxが起動しているか確認してください。", ephemeral: true)
+          return
+        end
+
         # 現在のユーザーの話者設定を取得
         current_speaker_id = speaker_manager.get_speaker(event.user.id)
         current_speaker_name = speakers[current_speaker_id] || "不明な話者"
