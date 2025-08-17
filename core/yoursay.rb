@@ -6,6 +6,7 @@ require 'yaml'
 require 'erb'
 require 'logger'
 require_relative 'voicevox'
+require_relative 'speaker_manager'
 
 # YourSaySanモジュール
 module YourSaySan
@@ -29,6 +30,7 @@ module YourSaySan
   # Shared states
   @text_channels = []
   @voicevox = VoiceVox.new(CONFIG, Logger.new($stdout)) rescue nil
+  @speaker_manager = SpeakerManager.new(CONFIG, Logger.new($stdout), @voicevox) rescue nil
 
   def self.text_channels
     @text_channels
@@ -36,6 +38,10 @@ module YourSaySan
 
   def self.voicevox
     @voicevox
+  end
+
+  def self.speaker_manager
+    @speaker_manager
   end
 
   # コマンドとイベントを登録する
@@ -63,12 +69,12 @@ module YourSaySan
       mod_ref.setup(BOT, @text_channels, @voicevox, CONFIG) if mod_ref.respond_to?(:setup)
     end
 
-    # 各コマンドモジュールのスラッシュコマンド登録を実行
+    # 各コマンドモジュールのコマンド登録を実行
     register_slash_commands_from_modules
   end
 
   def self.register_slash_commands_from_modules
-    puts '[Bot] スラッシュコマンドの登録開始'
+    puts '[Bot] コマンドの登録開始'
     
     Commands.constants.each do |mod|
       mod_ref = Commands.const_get mod
@@ -77,7 +83,7 @@ module YourSaySan
       end
     end
 
-    puts '[Bot] スラッシュコマンドの登録完了'
+    puts '[Bot] コマンドの登録完了'
   end
 
   def self.run

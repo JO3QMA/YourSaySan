@@ -18,7 +18,7 @@ module YourSaySan
             next if event.message.content == '' # 画像など本文がない投稿を弾く
 
             message = transform_message(bot, event.server, event.message.content, config)
-            self.say(event.voice, message, voicevox)
+            self.say(event.voice, message, voicevox, event.user.id)
           else
             text_channels.delete(event.channel.id)
             nil
@@ -36,9 +36,13 @@ module YourSaySan
         message
       end
 
-      def self.say(voice_chat, message, voicevox)
+      def self.say(voice_chat, message, voicevox, user_id)
+        # ユーザーごとの話者設定を取得
+        speaker_manager = YourSaySan.speaker_manager
+        speaker = speaker_manager ? speaker_manager.get_speaker(user_id) : 2
+        
         # VoiceVoxから音声データを取得
-        sound_data = voicevox.speak(message)
+        sound_data = voicevox.speak(message, speaker)
 
         Tempfile.create(['voice', '.wav']) do |tempfile|
           tempfile.binmode

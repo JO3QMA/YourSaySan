@@ -10,6 +10,7 @@ gem 'discordrb'
 gem 'opus-ruby'
 gem 'wavefile'
 gem 'dotenv'
+gem 'redis'
 
 group :development do
   gem 'debug', require: false
