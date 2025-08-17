@@ -37,9 +37,13 @@ module YourSaySan
       end
 
       def self.say(voice_chat, message, voicevox)
-        Tempfile.create do |tempfile|
-          sound = voicevox.speak(message)
-          tempfile.write(sound)
+        # VoiceVoxから音声データを取得
+        sound_data = voicevox.speak(message)
+
+        Tempfile.create(['voice', '.wav']) do |tempfile|
+          tempfile.binmode
+          tempfile.write(sound_data)
+          tempfile.flush
           voice_chat.play_file(tempfile.path)
         end
       end
