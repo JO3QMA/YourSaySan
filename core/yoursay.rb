@@ -6,6 +6,7 @@ require 'yaml'
 require 'erb'
 require 'logger'
 require_relative 'voicevox'
+require_relative 'speaker_manager'
 
 # YourSaySanモジュール
 module YourSaySan
@@ -29,6 +30,7 @@ module YourSaySan
   # Shared states
   @text_channels = []
   @voicevox = VoiceVox.new(CONFIG, Logger.new($stdout)) rescue nil
+  @speaker_manager = SpeakerManager.new(CONFIG, Logger.new($stdout), @voicevox) rescue nil
 
   def self.text_channels
     @text_channels
@@ -36,6 +38,10 @@ module YourSaySan
 
   def self.voicevox
     @voicevox
+  end
+
+  def self.speaker_manager
+    @speaker_manager
   end
 
   # コマンドとイベントを登録する
@@ -80,8 +86,42 @@ module YourSaySan
     puts '[Bot] スラッシュコマンドの登録完了'
   end
 
+  def self.display_registered_commands
+    puts '[Bot] 登録済みスラッシュコマンド一覧:'
+    puts '=' * 50
+    
+    # Discord APIからコマンド一覧を取得
+    begin
+      # Discordrbでは、登録されたコマンドは内部で管理されているため、
+      # 実際に登録されたコマンドの一覧を表示するのは難しい
+      # 代わりに、読み込まれたコマンドモジュールの一覧を表示
+      puts '  読み込まれたコマンドモジュール:'
+      Commands.constants.each do |mod|
+        mod_ref = Commands.const_get mod
+        if mod_ref.respond_to?(:register_slash_command)
+          puts "    - #{mod}"
+        end
+      end
+      
+      puts ''
+      puts '  利用可能なコマンド:'
+      puts '    /speaker - 話者を設定します'
+      puts '    /speaker_list - 利用可能な話者の一覧を表示します'
+      puts '    /summon - 読み上げBotを呼び出します'
+      puts '    /bye - 読み上げBotを切断します'
+      puts '    /reconnect - 読み上げBotを再接続します'
+      puts '    /stop - 読み上げを中断します'
+      
+    rescue => e
+      puts "  コマンド一覧の取得に失敗しました: #{e.message}"
+    end
+    
+    puts '=' * 50
+  end
+
   def self.run
     load_modules
+    display_registered_commands
     BOT.run
   rescue StandardError => e
     puts "Bot実行中にエラーが発生しました: #{e.message}"

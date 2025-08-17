@@ -2,6 +2,7 @@
 
 require 'net/http'
 require 'uri'
+require 'json'
 
 # VoiceVoxとやり取りするためのクラス
 class VoiceVox
@@ -15,6 +16,38 @@ class VoiceVox
     @logger.info('VoiceVox') { "Speak: Text: #{text} Speaker: #{speaker}" }
     query = voice_query(text, speaker)
     generate_voice(query, speaker)
+  end
+
+  # 利用可能な話者の一覧を取得
+  def get_speakers
+    begin
+      response = get_req('/speakers')
+      if response && response.code == '200'
+        speakers_data = JSON.parse(response.body)
+        speakers = {}
+        
+        speakers_data.each do |speaker|
+          speaker_name = speaker['name']
+          speaker['styles'].each do |style|
+            style_id = style['id']
+            style_name = style['name']
+            speakers[style_id] = "#{speaker_name}（#{style_name}）"
+          end
+        end
+        
+        # 話者ID順にソート
+        speakers = speakers.sort.to_h
+        
+        @logger.info('VoiceVox') { "Retrieved #{speakers.length} speaker styles from VoiceVox API" }
+        speakers
+      else
+        @logger.error('VoiceVox') { "Failed to get speakers from VoiceVox API: #{response&.code}" }
+        nil
+      end
+    rescue => e
+      @logger.error('VoiceVox') { "Error getting speakers from VoiceVox API: #{e.message}" }
+      nil
+    end
   end
 
   private
@@ -31,6 +64,26 @@ class VoiceVox
     response = post_req('/synthesis', { speaker: speaker }, query)
     @logger.debug('VoiceVox') { "Synthesis: Code: #{response.code}" }
     response.body
+  end
+
+  # Get送信用関数
+  def get_req(endpoint)
+    uri = URI.join(@host, endpoint)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.open_timeout = 3
+    http.read_timeout = 10
+    request = Net::HTTP::Get.new(uri.request_uri)
+    begin
+      res = http.request(request)
+      res.value
+      res
+    rescue Net::OpenTimeout, Net::ReadTimeout
+      @logger.error('VoiceVox') { 'VoiceVox request timed out.' }
+      nil
+    rescue StandardError => e
+      @logger.error('VoiceVox') { e.message }
+      nil
+    end
   end
 
   # Post送信用関数

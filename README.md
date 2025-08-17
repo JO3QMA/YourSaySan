@@ -16,6 +16,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 *   Discord BotのToken
 *   Discord BotのClient ID
 *   Voicevox Engine (Dockerコンテナで起動)
+*   Redis (話者設定の永続化用)
 
 ## 使い方
 
@@ -79,6 +80,11 @@ bot:
 voicevox:
   max: 50                      # 最大文字数
   host: 'http://voicevox:50021' # Voicevox Engineのホスト
+
+redis:
+  host: 'redis'                # Redisのホスト
+  port: 6379                   # Redisのポート
+  db: 0                        # Redisのデータベース番号
 ```
 
 ## 機能
@@ -92,10 +98,22 @@ Cloudflare WorkersのアップデートなどによるWebSocket接続断を自�
 - **定期的な接続状態チェック**: 1分ごとに接続状態をチェック
 - **指数バックオフ**: 再接続失敗時は徐々に待機時間を延長
 
+### 話者設定機能
+
+ユーザーごとにVoiceVoxの話者を設定できます。
+
+- **個人設定**: 各ユーザーが自分の好みの話者を設定可能
+- **永続化**: Redisを使用して話者設定を永続化
+- **話者一覧**: `/speaker_list`コマンドで利用可能な話者を確認
+- **設定変更**: `/speaker`コマンドで話者IDを指定して設定変更
+
 ### コマンド
 
-*   `!ping`: Botの死活確認を行います。
-*   `!summon`: 読み上げBotをVCに参加させます。
-*   `!bye`: 読み上げBotをVCから退出させます。
+*   `/ping`: Botの死活確認を行います。
+*   `/summon`: 読み上げBotをVCに参加させます。
+*   `/bye`: 読み上げBotをVCから退出させます。
 *   `/reconnect`: Discordが調子悪いときなどに、手動で再接続します。
+*   `/stop`: 読み上げを中断します。
+*   `/speaker`: 話者を設定します（例: `/speaker 2`）。
+*   `/speaker_list`: 利用可能な話者の一覧を表示します。
 
