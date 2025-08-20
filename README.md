@@ -10,6 +10,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 *   Ruby 3.4.2
 *   Docker
 *   Docker Compose
+*   GitHub Actions (Dockerイメージの自動ビルド)
 
 ## 必要なもの
 
@@ -28,6 +29,38 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
     ```
 
 3.  DiscordでBotを招待し、`!ping`コマンドを試してみてください。`Pong!`と返信されれば、Botは正常に動作しています。
+
+## GitHub Actions による自動ビルド
+
+このプロジェクトでは、GitHub Actionsを使用してDockerイメージの自動ビルドを行っています。
+
+### 動作条件
+
+- `main`または`master`ブランチへのプッシュ
+- タグ付きリリース（`v*`形式）
+- プルリクエスト
+
+### ビルドされるイメージ
+
+- **本番用イメージ**: `ghcr.io/{username}/{repository}:{tag}`
+- **開発用イメージ**: `ghcr.io/{username}/{repository}:dev`
+
+### 使用方法
+
+1. GitHub Container Registryからイメージを取得:
+   ```bash
+   docker pull ghcr.io/{username}/{repository}:latest
+   ```
+
+2. ローカルで実行:
+   ```bash
+   docker run -d ghcr.io/{username}/{repository}:latest
+   ```
+
+### 注意事項
+
+- GitHub Container Registryへのプッシュには、リポジトリの設定で「Packages」の権限を有効にする必要があります
+- プルリクエスト時はイメージのビルドのみ実行され、プッシュは行われません
 
 ## DevContainer での開発
 
