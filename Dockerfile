@@ -23,8 +23,8 @@ FROM base AS development
 
 # Gemfileをコピーして、すべてのGemをインストール
 COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理
-RUN --mount=type=cache,target=/usr/local/bundle \
+# Bundlerのキャッシュを効率的に管理（vendor/bundleにキャッシュを設定）
+RUN --mount=type=cache,target=/app/vendor/bundle \
     bundle install
 
 # アプリケーションコードをコピー
@@ -40,8 +40,8 @@ FROM base AS production
 
 # Gemfileをコピーして、本番用のGemのみインストール
 COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理（本番用）
-RUN --mount=type=cache,target=/usr/local/bundle \
+# Bundlerのキャッシュを効率的に管理（本番用、vendor/bundleにキャッシュを設定）
+RUN --mount=type=cache,target=/app/vendor/bundle \
     bundle install --without development test
 
 # アプリケーションコードをコピー
