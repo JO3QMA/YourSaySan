@@ -26,3 +26,6 @@ command:
   speaker_list:
     desc: '利用可能な話者の一覧を表示します。'
     usage: '`/speaker_list [page]` でページ番号を指定して話者一覧を表示します。'
+  invite:
+    desc: 'Botを他のサーバーに招待するためのURLを表示します。'
+    usage: '引数は必要ありません。'
