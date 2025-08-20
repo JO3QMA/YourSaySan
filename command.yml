@@ -20,3 +20,9 @@ command:
   eval:
     desc: 'コードを実行します（開発者用）。'
     usage: '`/eval code` でコードを実行します。'
+  speaker:
+    desc: '話者を設定します。'
+    usage: '`/speaker speaker_id` で話者IDを指定して設定します。'
+  speaker_list:
+    desc: '利用可能な話者の一覧を表示します。'
+    usage: '`/speaker_list [page]` でページ番号を指定して話者一覧を表示します。'
