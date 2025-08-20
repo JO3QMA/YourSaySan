@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ==================================
 # 1. ベースステージ (全環境で共通)
 # ==================================
@@ -9,8 +10,11 @@ WORKDIR /app
 RUN bundle config set path vendor/bundle
 
 # Optional audio tooling & runtime libs for Discord voice
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg opus-tools libopus0 libopus-dev libsodium23 && rm -rf /var/lib/apt/lists/*
+# 新しいキャッシュ機能を使用してaptパッケージのキャッシュを効率的に管理
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg opus-tools libopus0 libopus-dev libsodium23
 
 # ==================================
 # 2. 開発環境用ステージ
@@ -19,7 +23,9 @@ FROM base AS development
 
 # Gemfileをコピーして、すべてのGemをインストール
 COPY Gemfile Gemfile.lock ./
-RUN bundle install
+# Bundlerのキャッシュを効率的に管理（vendor/bundleにキャッシュを設定）
+RUN --mount=type=cache,target=/app/vendor/bundle \
+    bundle install
 
 # アプリケーションコードをコピー
 COPY . .
@@ -34,7 +40,9 @@ FROM base AS production
 
 # Gemfileをコピーして、本番用のGemのみインストール
 COPY Gemfile Gemfile.lock ./
-RUN bundle install --without development test
+# Bundlerのキャッシュを効率的に管理（本番用、vendor/bundleにキャッシュを設定）
+RUN --mount=type=cache,target=/app/vendor/bundle \
+    bundle install --without development test
 
 # アプリケーションコードをコピー
 COPY . .
