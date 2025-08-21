@@ -4,11 +4,6 @@ bot:
   prefix: '!'
   status: '[TESTING] 読み上げBot'
   owner: <%= ENV['DISCORD_OWNER_ID'] || 123456789012345678 %>
-  auto_reconnect:
-    enabled: true
-    heartbeat_timeout: 120  # ハートビートが途絶えてから再接続するまでの秒数
-    check_interval: 60      # 接続状態チェックの間隔（秒）
-    retry_delay: 30         # 再接続失敗時の再試行間隔（秒）
 
 voicevox:
   max: 50
