@@ -6,6 +6,11 @@ module YourSaySan
     module Invite
       extend Discordrb::EventContainer
 
+      COMMAND_INFO = {
+        desc: 'Botを他のサーバーに招待するためのURLを表示します',
+        usage: '`/invite` でBotを他のサーバーに招待するためのURLを表示します。'
+      }.freeze
+
       def self.register_slash_command(bot)
         bot.register_application_command(:invite, 'Botを他のサーバーに招待するためのURLを表示します')
       end
