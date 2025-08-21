@@ -6,12 +6,13 @@
   "service": "yousaysan",
   "workspaceFolder": "/app",
   "overrideCommand": true,
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && bundle install --binstubs",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global core.pager cat && bundle install --binstubs",
 
   "remoteEnv": {
     "RACK_ENV": "development",
     "BUNDLE_PATH": "/app/vendor/bundle",
-    "PATH": "/app/bin:${containerEnv:PATH}"
+    "PATH": "/app/bin:${containerEnv:PATH}",
+    "GIT_PAGER": "cat"
   },
 
   "forwardPorts": [50021],
