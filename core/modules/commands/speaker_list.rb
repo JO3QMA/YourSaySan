@@ -6,8 +6,14 @@ module YourSaySan
     module SpeakerList
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: '利用可能な話者の一覧を表示します。',
+        usage: '`/speaker_list [page]` でページ番号を指定して話者一覧を表示します。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:speaker_list, '利用可能な話者の一覧を表示します') do |cmd|
+        bot.register_application_command(:speaker_list, COMMAND_INFO[:desc]) do |cmd|
           cmd.integer(:page, 'ページ番号（1から開始）', required: false)
         end
       end

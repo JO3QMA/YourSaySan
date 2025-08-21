@@ -6,8 +6,14 @@ module YourSaySan
     module Summon
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: '読み上げBotを呼び出します。',
+        usage: '引数は必要ありません。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:summon, '読み上げBotを呼び出します')
+        bot.register_application_command(:summon, COMMAND_INFO[:desc])
       end
 
       application_command :summon do |event|
