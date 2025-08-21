@@ -23,9 +23,8 @@ module YourSaySan
         # - メッセージを送信 (Send Messages): 2048
         # - 音声チャンネルに接続 (Connect): 1048576
         # - 音声を再生 (Speak): 2097152
-        # - メッセージ履歴を表示 (Read Message History): 65536
         # - チャンネルを見る (View Channels): 1024
-        permissions = 2048 + 1048576 + 2097152 + 65536 + 1024
+        permissions = 2048 + 1048576 + 2097152 + 1024
         
         invite_url = "https://discord.com/api/oauth2/authorize?client_id=#{client_id}&permissions=#{permissions}&scope=bot"
         
@@ -41,7 +40,7 @@ module YourSaySan
             ),
             Discordrb::Webhooks::EmbedField.new(
               name: "必要な権限",
-              value: "• メッセージを送信\n• 音声チャンネルに接続\n• 音声を再生\n• メッセージ履歴を表示\n• チャンネルを見る",
+              value: "• メッセージを送信\n• 音声チャンネルに接続\n• 音声を再生\n• チャンネルを見る",
               inline: false
             )
           ],
