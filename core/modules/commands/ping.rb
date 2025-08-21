@@ -6,8 +6,14 @@ module YourSaySan
     module Ping
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: '`Pong`を返します。',
+        usage: '引数は必要ありません。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:ping, 'Pongを返します')
+        bot.register_application_command(:ping, COMMAND_INFO[:desc])
       end
 
       application_command :ping do |event|

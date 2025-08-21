@@ -6,8 +6,14 @@ module YourSaySan
     module Bye
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: '読み上げBotを切断します。',
+        usage: '引数は必要ありません。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:bye, '読み上げBotを切断します')
+        bot.register_application_command(:bye, COMMAND_INFO[:desc])
       end
 
       application_command :bye do |event|

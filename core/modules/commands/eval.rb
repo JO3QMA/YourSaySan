@@ -6,8 +6,14 @@ module YourSaySan
     module Eval
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: 'コードを実行します（開発者用）。',
+        usage: '`/eval code` でコードを実行します。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:eval, 'コードを実行します（開発者用）') do |cmd|
+        bot.register_application_command(:eval, COMMAND_INFO[:desc]) do |cmd|
           cmd.string(:code, '実行するコード', required: true)
         end
       end

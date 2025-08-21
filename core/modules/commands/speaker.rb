@@ -6,8 +6,14 @@ module YourSaySan
     module Speaker
       extend Discordrb::EventContainer
 
+      # コマンド情報を定義
+      COMMAND_INFO = {
+        desc: '話者を設定します。',
+        usage: '`/speaker speaker_id` で話者IDを指定して設定します。'
+      }.freeze
+
       def self.register_slash_command(bot)
-        bot.register_application_command(:speaker, '話者を設定します') do |cmd|
+        bot.register_application_command(:speaker, COMMAND_INFO[:desc]) do |cmd|
           cmd.string(:speaker_id, '話者ID', required: true)
         end
       end
