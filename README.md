@@ -92,7 +92,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 メモ:
 
 - DevContainer は `.devcontainer/compose.devcontainer.yml` のみで起動します。`voicevox` サービスも自動で立ち上がります。
-- ポート `50021` はホストにフォワードされます。
+- 各サービスは内部ネットワークで通信するため、ホストへのポート公開は不要です。
 
 ## 設定ファイル (config.yml)
 
