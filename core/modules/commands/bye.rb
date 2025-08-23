@@ -17,11 +17,16 @@ module YourSaySan
       end
 
       application_command :bye do |event|
-        if event.user.voice_channel
-          YourSaySan::BOT.voice_destroy(event.server)
-          event.respond(content: 'ボイスチャットから切断しました。', ephemeral: true)
-        else
-          event.respond(content: 'ボイスチャットに参加していません。', ephemeral: true)
+        begin
+          if event.user.voice_channel
+            YourSaySan::BOT.voice_destroy(event.server)
+            event.respond(content: 'ボイスチャットから切断しました。', ephemeral: true)
+          else
+            event.respond(content: 'ボイスチャットに参加していません。', ephemeral: true)
+          end
+        rescue => e
+          puts "[Bot] 切断エラー: #{e.message}"
+          event.respond(content: '切断処理に失敗しました。', ephemeral: true)
         end
       end
     end
