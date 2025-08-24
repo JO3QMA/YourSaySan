@@ -42,19 +42,33 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 
 ### ビルドされるイメージ
 
-- **本番用イメージ**: `ghcr.io/jo3qma/yoursaysan:{tag}`
+- **mainブランチ**: `ghcr.io/jo3qma/yoursaysan:main`
 - **開発用イメージ**: `ghcr.io/jo3qma/yoursaysan:dev`
+- **セマンティックバージョン**: `ghcr.io/jo3qma/yoursaysan:v1.0.0`（タグ付きリリース時）
+- **メジャー・マイナーバージョン**: `ghcr.io/jo3qma/yoursaysan:1.0`（タグ付きリリース時）
+- **SHAハッシュ**: `ghcr.io/jo3qma/yoursaysan:sha-{hash}`（コミット時）
 
 ### 使用方法
 
 1. GitHub Container Registryからイメージを取得:
    ```bash
-   docker pull ghcr.io/jo3qma/yoursaysan:latest
+   # 最新のmainブランチのイメージ
+   docker pull ghcr.io/jo3qma/yoursaysan:main
+   
+   # 開発用イメージ
+   docker pull ghcr.io/jo3qma/yoursaysan:dev
+   
+   # 特定のバージョン（例: v1.0.0）
+   docker pull ghcr.io/jo3qma/yoursaysan:v1.0.0
    ```
 
 2. ローカルで実行:
    ```bash
-   docker run -d ghcr.io/jo3qma/yoursaysan:latest
+   # mainブランチのイメージで実行
+   docker run -d ghcr.io/jo3qma/yoursaysan:main
+   
+   # 開発用イメージで実行
+   docker run -d ghcr.io/jo3qma/yoursaysan:dev
    ```
 
 ### 注意事項
