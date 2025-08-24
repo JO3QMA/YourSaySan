@@ -67,8 +67,8 @@ module YourSaySan
         if total_pages > 1
           embed.add_field(
             name: 'ページネーション',
-            value: "`/speaker_list page:#{page}` でページを指定できます。\n" +
-                   "前のページ: #{page > 1 ? page - 1 : 'なし'}\n" +
+            value: "`/speaker_list page:#{page}` でページを指定できます。\n" \
+                   "前のページ: #{page > 1 ? page - 1 : 'なし'}\n" \
                    "次のページ: #{page < total_pages ? page + 1 : 'なし'}",
             inline: false
           )

@@ -57,7 +57,7 @@ module YourSaySan
     puts '[Bot] モジュールの読み込み開始'
 
     # Bot Commands
-    Dir['./core/modules/commands/*.rb'].sort.each do |file|
+    Dir['./core/modules/commands/*.rb'].each do |file|
       puts "[Bot] Load Command: #{file}"
       require file
     end
@@ -66,7 +66,7 @@ module YourSaySan
     end
 
     # Bot Events
-    Dir['./core/modules/events/*.rb'].sort.each do |file|
+    Dir['./core/modules/events/*.rb'].each do |file|
       puts "[Bot] Load Event: #{file}"
       require file
     end
