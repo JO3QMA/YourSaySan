@@ -13,41 +13,47 @@ class VoiceVox
 
   # textとspeakerから音声を生成
   def speak(text, speaker = 2)
-    @logger.info('VoiceVox') { "Speak: Text: #{text} Speaker: #{speaker}" }
+    @logger.info('VoiceVox') do
+      "Speak: Text: #{text} Speaker: #{speaker}"
+    end
     query = voice_query(text, speaker)
     generate_voice(query, speaker)
   end
 
   # 利用可能な話者の一覧を取得
   def get_speakers
-    begin
-      response = get_req('/speakers')
-      if response && response.code == '200'
-        speakers_data = JSON.parse(response.body)
-        speakers = {}
-        
-        speakers_data.each do |speaker|
-          speaker_name = speaker['name']
-          speaker['styles'].each do |style|
-            style_id = style['id']
-            style_name = style['name']
-            speakers[style_id] = "#{speaker_name}（#{style_name}）"
-          end
+    response = get_req('/speakers')
+    if response && response.code == '200'
+      speakers_data = JSON.parse(response.body)
+      speakers = {}
+
+      speakers_data.each do |speaker|
+        speaker_name = speaker['name']
+        speaker['styles'].each do |style|
+          style_id = style['id']
+          style_name = style['name']
+          speakers[style_id] = "#{speaker_name}（#{style_name}）"
         end
-        
-        # 話者ID順にソート
-        speakers = speakers.sort.to_h
-        
-        @logger.info('VoiceVox') { "Retrieved #{speakers.length} speaker styles from VoiceVox API" }
-        speakers
-      else
-        @logger.error('VoiceVox') { "Failed to get speakers from VoiceVox API: #{response&.code}" }
-        nil
       end
-    rescue => e
-      @logger.error('VoiceVox') { "Error getting speakers from VoiceVox API: #{e.message}" }
+
+      # 話者ID順にソート
+      speakers = speakers.sort.to_h
+
+      @logger.info('VoiceVox') do
+        "Retrieved #{speakers.length} speaker styles from VoiceVox API"
+      end
+      speakers
+    else
+      @logger.error('VoiceVox') do
+        "Failed to get speakers from VoiceVox API: #{response&.code}"
+      end
       nil
     end
+  rescue StandardError => e
+    @logger.error('VoiceVox') do
+      "Error getting speakers from VoiceVox API: #{e.message}"
+    end
+    nil
   end
 
   private
@@ -55,14 +61,18 @@ class VoiceVox
   # VoiceVoxのクエリを作成
   def voice_query(text, speaker)
     response = post_req('/audio_query', { speaker: speaker, text: text })
-    @logger.debug('VoiceVox') { "Audio_query: Code: #{response.code} Text: #{text}" }
+    @logger.debug('VoiceVox') do
+      "Audio_query: Code: #{response.code} Text: #{text}"
+    end
     response.body
   end
 
   # クエリから音声を生成
   def generate_voice(query, speaker)
     response = post_req('/synthesis', { speaker: speaker }, query)
-    @logger.debug('VoiceVox') { "Synthesis: Code: #{response.code}" }
+    @logger.debug('VoiceVox') do
+      "Synthesis: Code: #{response.code}"
+    end
     response.body
   end
 
@@ -78,10 +88,14 @@ class VoiceVox
       res.value
       res
     rescue Net::OpenTimeout, Net::ReadTimeout
-      @logger.error('VoiceVox') { 'VoiceVox request timed out.' }
+      @logger.error('VoiceVox') do
+        'VoiceVox request timed out.'
+      end
       nil
     rescue StandardError => e
-      @logger.error('VoiceVox') { e.message }
+      @logger.error('VoiceVox') do
+        e.message
+      end
       nil
     end
   end
@@ -101,10 +115,14 @@ class VoiceVox
       res.value
       res
     rescue Net::OpenTimeout, Net::ReadTimeout
-      @logger.error('VoiceVox') { 'VoiceVox request timed out.' }
+      @logger.error('VoiceVox') do
+        'VoiceVox request timed out.'
+      end
       nil
     rescue StandardError => e
-      @logger.error('VoiceVox') { e.message }
+      @logger.error('VoiceVox') do
+        e.message
+      end
       nil
     end
   end

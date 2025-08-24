@@ -1,0 +1,77 @@
+require:
+  - rubocop-rspec
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.4
+  Exclude:
+    - 'vendor/**/*'
+    - 'node_modules/**/*'
+    - 'Gemfile.lock'
+    - 'db/schema.rb'
+
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/ModuleLength:
+  Max: 200
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Style/IfUnlessModifier:
+  Enabled: true
+
+Style/WhileUntilModifier:
+  Enabled: true
+
+Style/For:
+  Enabled: false
+
+Style/EachForSimpleLoop:
+  Enabled: false
+
+Style/BlockDelimiters:
+  EnforcedStyle: semantic
+
+Style/Proc:
+  EnforcedStyle: lambda
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+
+Style/MethodLength:
+  Exclude:
+    - 'spec/**/*'
+
+Style/ClassLength:
+  Exclude:
+    - 'spec/**/*'
+
+Style/ModuleLength:
+  Exclude:
+    - 'spec/**/*'

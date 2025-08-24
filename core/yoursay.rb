@@ -29,8 +29,16 @@ module YourSaySan
 
   # Shared states
   @text_channels = []
-  @voicevox = VoiceVox.new(CONFIG, Logger.new($stdout)) rescue nil
-  @speaker_manager = SpeakerManager.new(CONFIG, Logger.new($stdout), @voicevox) rescue nil
+  @voicevox = begin
+    VoiceVox.new(CONFIG, Logger.new($stdout))
+  rescue StandardError
+    nil
+  end
+  @speaker_manager = begin
+    SpeakerManager.new(CONFIG, Logger.new($stdout), @voicevox)
+  rescue StandardError
+    nil
+  end
 
   def self.text_channels
     @text_channels
@@ -75,12 +83,10 @@ module YourSaySan
 
   def self.register_slash_commands_from_modules
     puts '[Bot] コマンドの登録開始'
-    
+
     Commands.constants.each do |mod|
       mod_ref = Commands.const_get mod
-      if mod_ref.respond_to?(:register_slash_command)
-        mod_ref.register_slash_command(BOT)
-      end
+      mod_ref.register_slash_command(BOT) if mod_ref.respond_to?(:register_slash_command)
     end
 
     puts '[Bot] コマンドの登録完了'

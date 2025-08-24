@@ -7,13 +7,16 @@ ruby '>= 3.4.2', '< 3.5'
 # gem "rails"
 gem 'config'
 gem 'discordrb'
-gem 'opus-ruby'
-gem 'wavefile'
 gem 'dotenv'
+gem 'opus-ruby'
 gem 'redis'
+gem 'wavefile'
 
 group :development do
   gem 'debug', require: false
+  gem 'rubocop', require: false
+  gem 'rubocop-performance', require: false
+  gem 'rubocop-rspec', require: false
   gem 'ruby-lsp', require: false
 end
 
