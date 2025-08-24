@@ -28,5 +28,3 @@ module YourSaySan
     end
   end
 end
-
-

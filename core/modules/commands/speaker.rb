@@ -20,16 +20,16 @@ module YourSaySan
 
       application_command :speaker do |event|
         speaker_manager = YourSaySan.speaker_manager
-        
+
         if speaker_manager.nil?
-          event.respond(content: "話者マネージャーが初期化されていません。VoiceVoxの設定を確認してください。", ephemeral: true)
+          event.respond(content: '話者マネージャーが初期化されていません。VoiceVoxの設定を確認してください。', ephemeral: true)
           return
         end
-        
+
         speakers = speaker_manager.get_available_speakers
 
         if speakers.nil?
-          event.respond(content: "VoiceVoxのAPIに接続できません。VoiceVoxが起動しているか確認してください。", ephemeral: true)
+          event.respond(content: 'VoiceVoxのAPIに接続できません。VoiceVoxが起動しているか確認してください。', ephemeral: true)
           return
         end
 
@@ -44,7 +44,6 @@ module YourSaySan
           event.respond(content: "無効な話者IDです。0-#{max_id}の範囲で指定してください。", ephemeral: true)
         end
       end
-      
     end
   end
 end

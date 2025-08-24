@@ -28,12 +28,12 @@ module YourSaySan
         elsif event.respond_to?(:data) && event.data&.options
           code = event.data.options.find { |opt| opt.name == 'code' }&.value
         end
-        
+
         return event.respond(content: 'コードが指定されていません。', ephemeral: true) unless code
 
         begin
           result = eval code
-          event.respond(content: "実行結果: #{result.to_s}", ephemeral: true)
+          event.respond(content: "実行結果: #{result}", ephemeral: true)
         rescue StandardError => e
           event.respond(content: "エラー: #{e.message}", ephemeral: true)
         end
