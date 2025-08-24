@@ -11,7 +11,7 @@ services:
   voicevox:
     image: voicevox/voicevox_engine:cpu-latest
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:50021/version"]
+      test: ["CMD", "/usr/bin/curl", "-f", "http://localhost:50021/version"]
       interval: 90s
       timeout: 30s
       retries: 3
