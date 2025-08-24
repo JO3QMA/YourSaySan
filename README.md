@@ -94,6 +94,45 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 - DevContainer は `.devcontainer/compose.devcontainer.yml` のみで起動します。`voicevox` サービスも自動で立ち上がります。
 - 各サービスは内部ネットワークで通信するため、ホストへのポート公開は不要です。
 
+## コード規約 (RuboCop)
+
+このプロジェクトでは、RuboCopを使用してコード規約を統一しています。
+
+### 使用方法
+
+1. **コードチェック**:
+   ```bash
+   bundle exec rubocop
+   ```
+
+2. **自動修正**:
+   ```bash
+   bundle exec rubocop -a
+   ```
+
+3. **特定ファイルのチェック**:
+   ```bash
+   bundle exec rubocop core/yoursay.rb
+   ```
+
+### 設定
+
+RuboCopの設定は `.rubocop.yml` ファイルで管理されています。主な設定内容：
+
+- **文字列**: シングルクォートを優先
+- **行長**: 最大120文字
+- **メソッド長**: 最大20行
+- **クラス長**: 最大200行
+- **インデント**: 2スペース
+- **除外ファイル**: `vendor/`, `node_modules/`, `Gemfile.lock` など
+
+### 推奨ワークフロー
+
+1. コードを書く前にRuboCopでチェック
+2. 自動修正可能な問題は `bundle exec rubocop -a` で修正
+3. 手動修正が必要な問題は適切に修正
+4. コミット前に再度RuboCopでチェック
+
 ## 設定ファイル (config.yml)
 
 ```yaml
