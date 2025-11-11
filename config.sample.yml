@@ -1,15 +1,15 @@
 bot:
-  token: <%= ENV['DISCORD_BOT_TOKEN'] %>
-  client_id: <%= ENV['DISCORD_CLIENT_ID'] %>
+  token: ""  # 環境変数 DISCORD_BOT_TOKEN で上書きされます
+  client_id: ""  # 環境変数 DISCORD_CLIENT_ID で上書きされます
   prefix: '!'
   status: '[TESTING] 読み上げBot'
-  owner: <%= ENV['DISCORD_OWNER_ID'] || 123456789012345678 %>
+  owner: ""  # 環境変数 DISCORD_OWNER_ID で上書きされます
 
 voicevox:
   max: 50
-  host: <%= ENV['VOICEVOX_HOST'] || 'http://voicevox:50021' %>
+  host: "http://voicevox:50021"  # 環境変数 VOICEVOX_HOST で上書きされます
 
 redis:
-  host: <%= ENV['REDIS_HOST'] || 'redis' %>
-  port: <%= ENV['REDIS_PORT'] || 6379 %>
-  db: <%= ENV['REDIS_DB'] || 0 %>
+  host: "redis"  # 環境変数 REDIS_HOST で上書きされます
+  port: 6379  # 環境変数 REDIS_PORT で上書きされます
+  db: 0  # 環境変数 REDIS_DB で上書きされます

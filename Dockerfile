@@ -1,51 +1,70 @@
 # syntax=docker/dockerfile:1
 # ==================================
-# 1. ベースステージ (全環境で共通)
+# 1. ビルドステージ
 # ==================================
-FROM ruby:3.4.2 AS base
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-# Bundler のインストール先を固定（キャッシュ安定化）
-RUN bundle config set path vendor/bundle
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
-# Optional audio tooling & runtime libs for Discord voice
-# 新しいキャッシュ機能を使用してaptパッケージのキャッシュを効率的に管理
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg opus-tools libopus0 libopus-dev libsodium23
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /bot ./cmd/bot
 
 # ==================================
 # 2. 開発環境用ステージ
 # ==================================
-FROM base AS development
+FROM golang:1.23-alpine AS development
 
-# Gemfileをコピーして、すべてのGemをインストール
-COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理（vendor/bundleにキャッシュを設定）
-RUN --mount=type=cache,target=/app/vendor/bundle \
-    bundle install
+WORKDIR /app
 
-# アプリケーションコードをコピー
+# Install runtime dependencies
+RUN apk add --no-cache ffmpeg opus-tools libopus ca-certificates tzdata
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
 COPY . .
 
-# Dev Container起動時のデフォルトコマンド (特に不要ならなくてもOK)
+# Install air for hot reloading (optional)
+RUN go install github.com/air-verse/air@latest
+
+# Dev Container起動時のデフォルトコマンド
 CMD ["sleep", "infinity"]
 
 # ==================================
 # 3. 本番環境用ステージ
 # ==================================
-FROM base AS production
+FROM alpine:latest AS production
 
-# Gemfileをコピーして、本番用のGemのみインストール
-COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理（本番用、vendor/bundleにキャッシュを設定）
-RUN --mount=type=cache,target=/app/vendor/bundle \
-    bundle install --without development test
+WORKDIR /app
 
-# アプリケーションコードをコピー
-COPY . .
+# Install runtime dependencies
+RUN apk add --no-cache ffmpeg opus-tools libopus ca-certificates tzdata
 
-ENV RACK_ENV=production
-CMD ["ruby", "run.rb"]
+# Copy the binary from builder
+COPY --from=builder /bot /app/bot
+
+# Copy configuration file
+COPY config.sample.yml /app/config.sample.yml
+
+# Create a non-root user
+RUN addgroup -g 1000 bot && \
+    adduser -D -u 1000 -G bot bot && \
+    chown -R bot:bot /app
+
+USER bot
+
+ENV TZ=Asia/Tokyo
+
+CMD ["/app/bot", "-config", "/app/config.sample.yml"]

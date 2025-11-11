@@ -1,34 +1,39 @@
-# env
+# Binaries
+bot
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Environment variables
 .env
-.env*.local
-.env.development
-.env.production
-.env.test
 
-# bundler
-/vendor/bundle
-.bundle/
-/bin
-
-# ruby tools
-/.ruby-lsp/
-/doc/
-/.yardoc
-/.irb_history
-/.byebug_history
-
-# app-local config
-/config.yml
-
-# editor/IDE
+# IDE
 .vscode/
 .idea/
 *.swp
+*.swo
 *~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# reports
-/coverage/
+# Config files with secrets
+config.yml
+
+# Logs
+*.log
