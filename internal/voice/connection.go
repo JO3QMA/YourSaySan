@@ -43,15 +43,35 @@ func (c *Connection) Join(ctx context.Context, guildID, channelID string) error 
 	}
 
 	c.connection = vc
-	// Playerに接続を設定
-	c.player.SetConnection(vc)
 
-	// 再生ループを開始
-	if err := c.player.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start player: %w", err)
+	// 音声接続がReadyになるまで待機（最大10秒）
+	readyCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-readyCtx.Done():
+			return fmt.Errorf("timeout waiting for voice connection to be ready: %w", readyCtx.Err())
+		case <-ticker.C:
+			vc.RLock()
+			ready := vc.Ready
+			vc.RUnlock()
+			if ready {
+				// Playerに接続を設定
+				c.player.SetConnection(vc)
+
+				// 再生ループを開始
+				if err := c.player.Start(ctx); err != nil {
+					return fmt.Errorf("failed to start player: %w", err)
+				}
+
+				return nil
+			}
+		}
 	}
-
-	return nil
 }
 
 func (c *Connection) Leave() error {
