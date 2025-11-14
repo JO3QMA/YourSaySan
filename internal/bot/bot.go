@@ -102,9 +102,9 @@ func (b *Bot) Start() error {
 	}
 	b.session = session
 
-	// 6. コマンド登録
-	if err := b.RegisterCommands(); err != nil {
-		return fmt.Errorf("failed to register commands: %w", err)
+	// 6. コマンド準備（レジストリ作成とインタラクションハンドラ登録）
+	if err := b.PrepareCommands(); err != nil {
+		return fmt.Errorf("failed to prepare commands: %w", err)
 	}
 
 	// 7. イベントハンドラ登録
@@ -116,6 +116,7 @@ func (b *Bot) Start() error {
 	go b.startHTTPServer()
 
 	// 9. Bot Ready（Discord接続開始）
+	// コマンドのDiscord登録はReadyイベントハンドラ内で実行される
 	if err := b.session.Open(); err != nil {
 		return fmt.Errorf("failed to open Discord connection: %w", err)
 	}
@@ -177,20 +178,28 @@ func (b *Bot) Stop() error {
 	}
 }
 
-func (b *Bot) RegisterCommands() error {
-	// コマンドを登録
+func (b *Bot) PrepareCommands() error {
+	// コマンドレジストリを作成
 	registry := commands.RegisterAllCommands(b)
 	b.commandRegistry = registry
-
-	// Discordにコマンドを登録
-	if err := registry.RegisterAll(b.session); err != nil {
-		return fmt.Errorf("failed to register commands to Discord: %w", err)
-	}
 
 	// インタラクションハンドラを登録
 	b.session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		registry.HandleInteraction(s, i)
 	})
+
+	return nil
+}
+
+func (b *Bot) RegisterCommandsToDiscord() error {
+	if b.commandRegistry == nil {
+		return fmt.Errorf("command registry is not initialized")
+	}
+
+	// Discordにコマンドを登録（Readyイベント後に呼ばれる）
+	if err := b.commandRegistry.RegisterAll(b.session); err != nil {
+		return fmt.Errorf("failed to register commands to Discord: %w", err)
+	}
 
 	return nil
 }
@@ -249,6 +258,10 @@ func (w *eventsBotWrapper) RecordAudioGenerationDuration(speakerID int, duration
 
 func (w *eventsBotWrapper) SetQueueSize(guildID string, size int) {
 	w.bot.SetQueueSize(guildID, size)
+}
+
+func (w *eventsBotWrapper) RegisterCommandsToDiscord() error {
+	return w.bot.RegisterCommandsToDiscord()
 }
 
 func (b *Bot) GetVoiceConnection(guildID string) (*voice.Connection, error) {

@@ -16,6 +16,7 @@ type BotInterface interface {
 	RemoveVoiceConnection(guildID string)
 	RecordAudioGenerationDuration(speakerID int, duration float64)
 	SetQueueSize(guildID string, size int)
+	RegisterCommandsToDiscord() error
 }
 
 // ConfigInterface は設定のインターフェース
