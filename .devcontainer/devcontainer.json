@@ -6,12 +6,12 @@
   "service": "yousaysan",
   "workspaceFolder": "/app",
   "overrideCommand": true,
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global core.pager cat && bundle install --binstubs",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global core.pager cat && go mod download && go install github.com/mrjoshuak/godoc-mcp@latest",
 
   "remoteEnv": {
-    "RACK_ENV": "development",
-    "BUNDLE_PATH": "/app/vendor/bundle",
-    "PATH": "/app/bin:${containerEnv:PATH}",
+    "GOPATH": "/go",
+    "GOCACHE": "/go/cache",
+    "PATH": "/app/bin:/go/bin:${containerEnv:PATH}",
     "GIT_PAGER": "cat"
   },
 
@@ -21,15 +21,22 @@
       "username": "root",
       "installZsh": false,
       "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "latest"
     }
   },
   "customizations": {
     "vscode": {
       "extensions": [
-        "Shopify.ruby-lsp",
-        "Shopify.ruby-extensions-pack",
-        "KoichiSasada.vscode-rdbg"
-      ]
+        "golang.go"
+      ],
+      "settings": {
+        "go.toolsManagement.autoUpdate": true,
+        "go.useLanguageServer": true,
+        "go.lintOnSave": "package",
+        "go.formatTool": "goimports"
+      }
     }
   }
 }
