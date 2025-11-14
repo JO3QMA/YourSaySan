@@ -2,7 +2,7 @@
 # ==================================
 # 1. ビルドステージ
 # ==================================
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # ビルド依存関係
 RUN apk add --no-cache git make gcc musl-dev
@@ -36,4 +36,24 @@ COPY --from=builder /app/yoursay-bot .
 COPY config/config.yaml ./config/
 
 CMD ["./yoursay-bot"]
+
+# ==================================
+# 3. 開発ステージ
+# ==================================
+FROM golang:1.23-alpine AS development
+
+# ビルド依存関係と開発ツール
+RUN apk add --no-cache git make gcc musl-dev ffmpeg opus-tools ca-certificates
+
+WORKDIR /app
+
+# 依存関係をダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
+
+# アプリケーションコードをコピー
+COPY . .
+
+# 開発用のエントリーポイント（必要に応じて変更可能）
+CMD ["go", "run", "./cmd/bot"]
 
