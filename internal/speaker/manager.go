@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/golang-lru/v2"
+	"github.com/JO3QMA/YourSaySan/internal/voicevox"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-	"github.com/your-org/yoursay-bot/internal/voicevox"
 )
 
 const (
@@ -45,11 +45,11 @@ func NewManager(redisClient RedisClient, voicevoxAPI VoiceVoxAPI) (*Manager, err
 	}
 
 	m := &Manager{
-		redis:         redisClient,
-		voicevox:      voicevoxAPI,
-		cache:         cache,
-		cacheTTL:      5 * time.Minute,
-		maxCacheSize:  1000,
+		redis:            redisClient,
+		voicevox:         voicevoxAPI,
+		cache:            cache,
+		cacheTTL:         5 * time.Minute,
+		maxCacheSize:     1000,
 		speakersCacheTTL: 1 * time.Hour,
 	}
 
@@ -188,4 +188,3 @@ func (m *Manager) reconnectLoop(ctx context.Context) {
 		}
 	}
 }
-

@@ -1832,7 +1832,7 @@ func (b *Bot) readinessCheckHandler(w http.ResponseWriter, r *http.Request) {
 ### 必須ライブラリ
 
 ```go
-module github.com/your-org/yoursay-bot
+module github.com/JO3QMA/YourSaySan
 
 go 1.21
 

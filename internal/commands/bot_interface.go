@@ -3,9 +3,9 @@ package commands
 import (
 	"context"
 
+	"github.com/JO3QMA/YourSaySan/internal/voice"
+	"github.com/JO3QMA/YourSaySan/internal/voicevox"
 	"github.com/bwmarrin/discordgo"
-	"github.com/your-org/yoursay-bot/internal/voice"
-	"github.com/your-org/yoursay-bot/internal/voicevox"
 )
 
 // BotInterface はBotのインターフェース（循環参照を避けるため）
@@ -51,4 +51,3 @@ type VoiceVoxAPI interface {
 	Speak(ctx context.Context, text string, speakerID int) ([]byte, error)
 	GetSpeakers(ctx context.Context) ([]voicevox.Speaker, error)
 }
-

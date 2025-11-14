@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
+	"github.com/JO3QMA/YourSaySan/internal/voice"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
-	"github.com/your-org/yoursay-bot/internal/voice"
 )
 
 func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.InteractionCreate) error {
@@ -60,4 +60,3 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 		},
 	})
 }
-

@@ -1,4 +1,4 @@
-module github.com/your-org/yoursay-bot
+module github.com/JO3QMA/YourSaySan
 
 go 1.21
 
