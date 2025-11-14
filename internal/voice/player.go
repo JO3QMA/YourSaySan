@@ -13,7 +13,7 @@ import (
 
 type Player struct {
 	queue    *Queue
-	encoder  *Encoder
+	encoder  Encoder
 	conn     *discordgo.VoiceConnection
 	playing  atomic.Bool
 	stopChan chan struct{}
@@ -22,7 +22,7 @@ type Player struct {
 	wg       sync.WaitGroup
 }
 
-func NewPlayer(queue *Queue, encoder *Encoder) *Player {
+func NewPlayer(queue *Queue, encoder Encoder) *Player {
 	return &Player{
 		queue:    queue,
 		encoder:  encoder,
@@ -162,4 +162,3 @@ func (p *Player) playAudio(ctx context.Context, item AudioItem) error {
 		}
 	}
 }
-

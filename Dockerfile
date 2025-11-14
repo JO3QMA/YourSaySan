@@ -2,10 +2,11 @@
 # ==================================
 # 1. ビルドステージ
 # ==================================
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # ビルド依存関係
-RUN apk add --no-cache git make gcc musl-dev
+# Opusエンコーダー（USE_PION_OPUS=true）用: opus-dev, opusfile-dev（CGOビルド時）
+RUN apk add --no-cache git make gcc musl-dev opus-dev opusfile-dev
 
 WORKDIR /app
 
@@ -25,7 +26,9 @@ RUN CGO_ENABLED=1 go build -o yoursay-bot ./cmd/bot
 FROM alpine:latest
 
 # システム依存関係
-RUN apk add --no-cache ffmpeg opus-tools ca-certificates
+# DCAエンコーダー（デフォルト）用: ffmpeg
+# Opusエンコーダー（USE_PION_OPUS=true）用: opus-dev（CGOビルド時）
+RUN apk add --no-cache ffmpeg opus-tools ca-certificates opus-dev
 
 WORKDIR /app
 
@@ -40,10 +43,11 @@ CMD ["./yoursay-bot"]
 # ==================================
 # 3. 開発ステージ
 # ==================================
-FROM golang:1.23-alpine AS development
+FROM golang:1.25-alpine AS development
 
 # ビルド依存関係と開発ツール
-RUN apk add --no-cache git make gcc musl-dev ffmpeg opus-tools ca-certificates
+# Opusエンコーダー（USE_PION_OPUS=true）用: opus-dev, opusfile-dev（CGOビルド時）
+RUN apk add --no-cache git make gcc musl-dev ffmpeg opus-tools ca-certificates opus-dev opusfile-dev
 
 WORKDIR /app
 

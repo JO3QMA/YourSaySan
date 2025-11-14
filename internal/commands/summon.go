@@ -47,7 +47,17 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	// 新しい接続を作成
-	conn := voice.NewConnection(s, 50) // 最大キューサイズ: 50
+	conn, err := voice.NewConnection(s, 50) // 最大キューサイズ: 50
+	if err != nil {
+		logrus.WithError(err).Error("Failed to create voice connection")
+		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("VC接続の作成に失敗しました: %v", err),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+	}
 	ctx := b.GetContext()
 
 	if err := conn.Join(ctx, guildID, channelID); err != nil {

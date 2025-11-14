@@ -1,10 +1,13 @@
 module github.com/JO3QMA/YourSaySan
 
-go 1.24.0
+go 1.25
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
+	github.com/go-audio/audio v1.0.0
+	github.com/go-audio/wav v1.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/hraban/opus v0.0.0-20230925203106-0188a62cb302
 	github.com/joho/godotenv v1.5.1
 	github.com/jonas747/dca v0.0.0-20210930103944-155f5e5f0cc7
 	github.com/redis/go-redis/v9 v9.3.0
@@ -18,6 +21,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
