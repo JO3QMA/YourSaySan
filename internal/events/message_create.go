@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JO3QMA/YourSaySan/pkg/utils"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
-	"github.com/your-org/yoursay-bot/pkg/utils"
 )
 
 func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -82,4 +82,3 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		b.SetQueueSize(m.GuildID, conn.QueueSize())
 	}
 }
-

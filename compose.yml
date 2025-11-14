@@ -34,7 +34,6 @@ services:
   yousaysan:
     build:
       context: ./
-      target: production
     depends_on:
       voicevox:
         condition: service_healthy
@@ -43,7 +42,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "ruby.*run.rb"]
+      test: ["CMD-SHELL", "pgrep -f yoursay-bot"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/JO3QMA/YourSaySan/internal/voicevox"
 	"github.com/redis/go-redis/v9"
-	"github.com/your-org/yoursay-bot/internal/voicevox"
 )
 
 // RedisClient はRedisクライアントのインターフェース
@@ -19,4 +19,3 @@ type RedisClient interface {
 type VoiceVoxAPI interface {
 	GetSpeakers(ctx context.Context) ([]voicevox.Speaker, error)
 }
-

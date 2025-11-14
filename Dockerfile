@@ -1,51 +1,39 @@
 # syntax=docker/dockerfile:1
 # ==================================
-# 1. ベースステージ (全環境で共通)
+# 1. ビルドステージ
 # ==================================
-FROM ruby:3.4.2 AS base
+FROM golang:1.21-alpine AS builder
+
+# ビルド依存関係
+RUN apk add --no-cache git make gcc musl-dev
 
 WORKDIR /app
 
-# Bundler のインストール先を固定（キャッシュ安定化）
-RUN bundle config set path vendor/bundle
-
-# Optional audio tooling & runtime libs for Discord voice
-# 新しいキャッシュ機能を使用してaptパッケージのキャッシュを効率的に管理
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg opus-tools libopus0 libopus-dev libsodium23
-
-# ==================================
-# 2. 開発環境用ステージ
-# ==================================
-FROM base AS development
-
-# Gemfileをコピーして、すべてのGemをインストール
-COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理（vendor/bundleにキャッシュを設定）
-RUN --mount=type=cache,target=/app/vendor/bundle \
-    bundle install
+# go.modとgo.sumをコピーして依存関係をダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
 
 # アプリケーションコードをコピー
 COPY . .
 
-# Dev Container起動時のデフォルトコマンド (特に不要ならなくてもOK)
-CMD ["sleep", "infinity"]
+# ビルド
+RUN CGO_ENABLED=1 go build -o yoursay-bot ./cmd/bot
 
 # ==================================
-# 3. 本番環境用ステージ
+# 2. ランタイムステージ
 # ==================================
-FROM base AS production
+FROM alpine:latest
 
-# Gemfileをコピーして、本番用のGemのみインストール
-COPY Gemfile Gemfile.lock ./
-# Bundlerのキャッシュを効率的に管理（本番用、vendor/bundleにキャッシュを設定）
-RUN --mount=type=cache,target=/app/vendor/bundle \
-    bundle install --without development test
+# システム依存関係
+RUN apk add --no-cache ffmpeg opus-tools ca-certificates
 
-# アプリケーションコードをコピー
-COPY . .
+WORKDIR /app
 
-ENV RACK_ENV=production
-CMD ["ruby", "run.rb"]
+# ビルド済みバイナリをコピー
+COPY --from=builder /app/yoursay-bot .
+
+# 設定ファイルをコピー
+COPY config/config.yaml ./config/
+
+CMD ["./yoursay-bot"]
+
