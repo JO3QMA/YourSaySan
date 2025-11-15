@@ -27,23 +27,22 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 			return
 		}
 
-		// メッセージ受信をログに記録（内容は記録しない）
+		// 4. 読み上げ対象チャンネルかチェック
+		// summonで呼び出されていないチャンネルのメッセージはログに出さない
+		if !b.GetState().IsTextChannelActive(m.GuildID, m.ChannelID) {
+			return
+		}
+
+		// 読み上げ対象チャンネルのメッセージをログに記録
+		// Debugレベルではメッセージ内容も記録
 		logrus.WithFields(logrus.Fields{
 			"guild_id":    m.GuildID,
 			"channel_id":  m.ChannelID,
 			"user_id":     m.Author.ID,
 			"message_id":  m.ID,
 			"content_len": len(m.Content),
+			"content":     m.Content, // Debugレベルでメッセージ内容を記録
 		}).Debug("Message received for text-to-speech")
-
-		// 4. 読み上げ対象チャンネルかチェック
-		if !b.GetState().IsTextChannelActive(m.GuildID, m.ChannelID) {
-			logrus.WithFields(logrus.Fields{
-				"guild_id":   m.GuildID,
-				"channel_id": m.ChannelID,
-			}).Trace("Text channel is not active for TTS")
-			return
-		}
 
 		// 5. VC接続を確認
 		conn, err := b.GetVoiceConnection(m.GuildID)
@@ -72,7 +71,8 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 			"user_id":          m.Author.ID,
 			"original_len":     len(m.Content),
 			"transformed_len":  len(transformedText),
-		}).Trace("Message transformed for TTS")
+			"transformed_text": transformedText, // Debugレベルで変換後のテキストも記録
+		}).Debug("Message transformed for TTS")
 
 		// 7. 話者設定取得
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -107,11 +107,11 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		b.RecordAudioGenerationDuration(speakerID, duration)
 
 		logrus.WithFields(logrus.Fields{
-			"guild_id":      m.GuildID,
-			"user_id":       m.Author.ID,
-			"speaker_id":    speakerID,
-			"audio_size":    len(audioData),
-			"duration_sec":  duration,
+			"guild_id":     m.GuildID,
+			"user_id":      m.Author.ID,
+			"speaker_id":   speakerID,
+			"audio_size":   len(audioData),
+			"duration_sec": duration,
 		}).Debug("Audio generated successfully")
 
 		// 9. 音声再生
