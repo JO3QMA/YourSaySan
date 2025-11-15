@@ -39,9 +39,9 @@ type AccentPhrase struct {
 type Mora struct {
 	Text            string   `json:"text"`
 	Consonant       *string  `json:"consonant,omitempty"`
-	ConsonantLength *float64 `json:"consonantLength,omitempty"`
+	ConsonantLength *float64 `json:"consonant_length,omitempty"`
 	Vowel           string   `json:"vowel"`
-	VowelLength     float64  `json:"vowelLength"`
+	VowelLength     float64  `json:"vowel_length"`
 	Pitch           float64  `json:"pitch"`
 }
 

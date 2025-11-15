@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -13,7 +14,7 @@ import (
 
 type Player struct {
 	queue    *Queue
-	encoder  *Encoder
+	encoder  Encoder
 	conn     *discordgo.VoiceConnection
 	playing  atomic.Bool
 	stopChan chan struct{}
@@ -22,7 +23,7 @@ type Player struct {
 	wg       sync.WaitGroup
 }
 
-func NewPlayer(queue *Queue, encoder *Encoder) *Player {
+func NewPlayer(queue *Queue, encoder Encoder) *Player {
 	return &Player{
 		queue:    queue,
 		encoder:  encoder,
@@ -141,6 +142,9 @@ func (p *Player) playAudio(ctx context.Context, item AudioItem) error {
 	defer conn.Speaking(false)
 
 	// OpusストリームをDiscordに送信
+	// エンコーダーのチャンネルから読み取ったフレームを送信する
+	// ただし、conn.OpusSendがブロックしている場合は、フレームを破棄して続行する
+	// これにより、エンコーダーのチャンネルが閉じられた後、確実にconn.Speaking(false)が呼ばれる
 	for {
 		select {
 		case <-ctx.Done():
@@ -149,17 +153,27 @@ func (p *Player) playAudio(ctx context.Context, item AudioItem) error {
 			return nil
 		case opusFrame, ok := <-opusChan:
 			if !ok {
-				// エンコード完了
+				// エンコード完了 - エンコーダーのチャンネルが閉じられた
+				// この時点で、残りのフレームはすべて送信されたか、破棄された
+				// conn.Speaking(false)はdeferで呼ばれる
 				return nil
 			}
+			// conn.OpusSendへの送信を試みる
+			// ブロックしている場合は、タイムアウトしてフレームを破棄する
 			select {
 			case conn.OpusSend <- opusFrame:
+				// 送信成功
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-p.stopChan:
 				return nil
+			case <-time.After(50 * time.Millisecond):
+				// タイムアウト: conn.OpusSendがブロックしている
+				// フレームを破棄して続行（音声が少し途切れる可能性があるが、
+				// 次の音声は再生できる）
+				logrus.Debug("OpusSend channel is blocked, dropping frame")
+				// フレームを破棄して続行
 			}
 		}
 	}
 }
-

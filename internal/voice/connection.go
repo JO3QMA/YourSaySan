@@ -18,15 +18,18 @@ type Connection struct {
 	mu         sync.RWMutex
 }
 
-func NewConnection(session *discordgo.Session, maxQueueSize int) *Connection {
+func NewConnection(session *discordgo.Session, maxQueueSize int) (*Connection, error) {
 	queue := NewQueue(maxQueueSize)
-	encoder := NewEncoder()
+	encoder, err := NewEncoder()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create encoder: %w", err)
+	}
 	player := NewPlayer(queue, encoder)
 
 	return &Connection{
 		session: session,
 		player:  player,
-	}
+	}, nil
 }
 
 func (c *Connection) Join(ctx context.Context, guildID, channelID string) error {
@@ -128,4 +131,3 @@ func (c *Connection) GetChannelID() string {
 	defer c.mu.RUnlock()
 	return c.channelID
 }
-

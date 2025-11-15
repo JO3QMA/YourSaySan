@@ -9,13 +9,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/time/rate"
 )
 
 var (
-	ErrVoiceVoxUnavailable   = errors.New("voicevox engine unavailable")
+	ErrVoiceVoxUnavailable    = errors.New("voicevox engine unavailable")
 	ErrVoiceVoxTimeout        = errors.New("voicevox request timeout")
 	ErrVoiceVoxInvalidSpeaker = errors.New("invalid speaker ID")
 )
@@ -49,20 +50,20 @@ func NewClient(baseURL string) *Client {
 			}).DialContext,
 			ResponseHeaderTimeout: readTimeout,
 			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:  10,
+			MaxIdleConnsPerHost:   10,
 			IdleConnTimeout:       90 * time.Second,
 		},
 	}
 
 	return &Client{
-		baseURL:        baseURL,
-		httpClient:     httpClient,
-		connectTimeout: connectTimeout,
-		readTimeout:    readTimeout,
-		maxRetries:     3,
-		retryBackoff:   100 * time.Millisecond,
+		baseURL:         baseURL,
+		httpClient:      httpClient,
+		connectTimeout:  connectTimeout,
+		readTimeout:     readTimeout,
+		maxRetries:      3,
+		retryBackoff:    100 * time.Millisecond,
 		retryBackoffMax: 2 * time.Second,
-		rateLimiter:    rate.NewLimiter(rate.Limit(10), 10), // 10 req/s
+		rateLimiter:     rate.NewLimiter(rate.Limit(10), 10), // 10 req/s
 	}
 }
 
@@ -110,7 +111,9 @@ func (c *Client) speakWithRetry(ctx context.Context, text string, speakerID int)
 
 func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]byte, error) {
 	// 1. AudioQueryを取得
-	queryURL := fmt.Sprintf("%s/audio_query?text=%s&speaker=%d", c.baseURL, text, speakerID)
+	// テキストをURLエンコードしてクエリパラメータに含める
+	encodedText := url.QueryEscape(text)
+	queryURL := fmt.Sprintf("%s/audio_query?text=%s&speaker=%d", c.baseURL, encodedText, speakerID)
 	req, err := http.NewRequestWithContext(ctx, "POST", queryURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -134,6 +137,9 @@ func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]b
 	if err := json.NewDecoder(resp.Body).Decode(&audioQuery); err != nil {
 		return nil, fmt.Errorf("failed to decode audio_query: %w", err)
 	}
+
+	// DiscordのOpusエンコーダーは48kHzを要求するため、サンプルレートを48kHzに設定
+	audioQuery.OutputSamplingRate = 48000
 
 	// 2. Synthesisを実行
 	queryJSON, err := json.Marshal(audioQuery)
@@ -213,4 +219,3 @@ type HTTPError struct {
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
 }
-

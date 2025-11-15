@@ -635,10 +635,68 @@ type CommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate) e
 DiscordのVCで音声を再生するには、WAV形式の音声データをOpus形式にエンコードする必要があります。この処理は以下のパイプラインで実装します：
 
 ```
-VoiceVox API (WAV) → WAVファイル → DCAエンコーダー → Opusストリーム → Discord VC
+VoiceVox API (WAV) → WAVデータ → エンコーダー → Opusストリーム → Discord VC
 ```
 
-### 1. DCAエンコーディング（`internal/voice/encoder.go`）
+エンコーダーは環境変数`USE_PION_OPUS=true`で切り替え可能です：
+- **DCAエンコーダー**（デフォルト）: FFmpegを使用、一時ファイルが必要
+- **Opusエンコーダー**（`USE_PION_OPUS=true`）: Pure Go実装、メモリ上で直接処理
+
+### 1. Opusエンコーディング（`internal/voice/encoder_opus.go`）
+
+新しいPure Go実装のエンコーダーです。`github.com/hraban/opus`と`github.com/go-audio/wav`を使用します。
+
+```go
+import (
+    "github.com/go-audio/wav"
+    "github.com/hraban/opus"
+)
+
+type OpusEncoder struct {
+    encoder *opus.Encoder
+    mu      sync.Mutex
+    sampleRate int // 48000Hz
+    channels   int // 1 or 2
+    bitrate    int // 64kbps
+    frameSize  int // 960サンプル (20ms @ 48kHz)
+}
+
+func NewOpusEncoder() (*OpusEncoder, error)
+func (e *OpusEncoder) EncodeBytes(ctx context.Context, wavData []byte) (<-chan []byte, error)
+func (e *OpusEncoder) EncodeFile(ctx context.Context, wavPath string) (<-chan []byte, error)
+```
+
+**責務:**
+- WAVデータをPCMにパース（`github.com/go-audio/wav`）
+- PCMデータをOpus形式にエンコード（`github.com/hraban/opus`）
+- ストリーミング形式でデータを返す（チャンネル経由）
+- 一時ファイル不要（メモリ上で直接処理）
+
+**依存関係:**
+- `github.com/go-audio/wav`: WAVファイルパーサー（Pure Go）
+- `github.com/hraban/opus`: Opusエンコーダー（libopusバインディング、CGO必要）
+- `github.com/go-audio/audio`: オーディオフォーマット定義
+
+**エンコーディングパラメータ:**
+- **フレームサイズ**: 960サンプル（20ms @ 48kHz）
+- **ビットレート**: 64kbps（Discordの推奨値）
+- **サンプルレート**: 48000Hz（Discordの標準）
+- **チャンネル数**: 1（モノラル）または2（ステレオ）
+- **アプリケーション**: Voip（音声通話用）
+
+**エラーケース:**
+```go
+var (
+    ErrInvalidWAVFormat      = errors.New("invalid WAV format")
+    ErrUnsupportedSampleRate = errors.New("unsupported sample rate (require 48kHz)")
+    ErrUnsupportedChannels   = errors.New("unsupported channels (require 1 or 2)")
+    ErrOpusEncodeFailed      = errors.New("opus encode failed")
+)
+```
+
+### 2. DCAエンコーディング（`internal/voice/encoder_dca.go`）
+
+後方互換性のためのDCA実装です。デフォルトで使用されます。
 
 ```go
 import (
@@ -1870,8 +1928,11 @@ require (
 ### システム依存
 
 **Dockerイメージに含める必要があるもの:**
-- `ffmpeg`: DCAエンコーディングに必要
+- `ffmpeg`: DCAエンコーディングに必要（デフォルトエンコーダー使用時）
 - `opus-tools`: Opusエンコーディングに必要（オプション）
+- `opus-dev`: Opusエンコーダー（`USE_PION_OPUS=true`使用時、CGOビルドに必要）
+
+**注意:** `USE_PION_OPUS=true`を使用する場合、`github.com/hraban/opus`はCGOを必要とします。ビルド時に`CGO_ENABLED=1`が必要です。
 
 **Dockerfile例:**
 
