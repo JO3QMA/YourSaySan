@@ -114,10 +114,22 @@ func (p *Player) playLoop(ctx context.Context) {
 			}
 
 			// 音声を再生
+			logrus.WithFields(logrus.Fields{
+				"guild_id":   item.GuildID,
+				"channel_id": item.ChannelID,
+				"audio_size": len(item.Data),
+			}).Trace("Starting audio playback")
 			if err := p.playAudio(ctx, item); err != nil {
-				logrus.WithError(err).Error("Failed to play audio")
+				logrus.WithError(err).WithFields(logrus.Fields{
+					"guild_id":   item.GuildID,
+					"channel_id": item.ChannelID,
+				}).Error("Failed to play audio")
 				continue
 			}
+			logrus.WithFields(logrus.Fields{
+				"guild_id":   item.GuildID,
+				"channel_id": item.ChannelID,
+			}).Trace("Audio playback completed")
 		}
 	}
 }
@@ -132,10 +144,23 @@ func (p *Player) playAudio(ctx context.Context, item AudioItem) error {
 	}
 
 	// WAVデータをOpus形式にエンコード
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   item.GuildID,
+		"channel_id": item.ChannelID,
+		"audio_size": len(item.Data),
+	}).Trace("Encoding audio to Opus")
 	opusChan, err := p.encoder.EncodeBytes(ctx, item.Data)
 	if err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"guild_id":   item.GuildID,
+			"channel_id": item.ChannelID,
+		}).Error("Failed to encode audio")
 		return fmt.Errorf("failed to encode audio: %w", err)
 	}
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   item.GuildID,
+		"channel_id": item.ChannelID,
+	}).Trace("Audio encoded successfully")
 
 	// 再生開始
 	conn.Speaking(true)

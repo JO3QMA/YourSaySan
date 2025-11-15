@@ -74,52 +74,79 @@ func NewBot(configPath string) (*Bot, error) {
 
 func (b *Bot) Start() error {
 	// 1. 設定ファイル読み込み（NewBot時点で完了）
+	logrus.Debug("Config file already loaded")
 
 	// 2. Redis接続
+	logrus.WithFields(logrus.Fields{
+		"host": b.config.Redis.Host,
+		"port": b.config.Redis.Port,
+		"db":   b.config.Redis.DB,
+	}).Info("Connecting to Redis")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", b.config.Redis.Host, b.config.Redis.Port),
 		DB:   b.config.Redis.DB,
 	})
 	if err := redisClient.Ping(b.ctx).Err(); err != nil {
+		logrus.WithError(err).Error("Failed to connect to Redis")
 		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}
+	logrus.Info("Redis connection established")
 
 	// 3. VoiceVoxクライアント初期化
+	logrus.WithField("host", b.config.VoiceVox.Host).Info("Initializing VoiceVox client")
 	voicevoxClient := voicevox.NewClient(b.config.VoiceVox.Host)
 	b.voicevox = voicevoxClient
+	logrus.Debug("VoiceVox client initialized")
 
 	// 4. SpeakerManager初期化
+	logrus.Debug("Initializing SpeakerManager")
 	speakerManager, err := speaker.NewManager(redisClient, voicevoxClient)
 	if err != nil {
+		logrus.WithError(err).Error("Failed to create speaker manager")
 		return fmt.Errorf("failed to create speaker manager: %w", err)
 	}
 	b.speakerManager = speakerManager
+	logrus.Debug("SpeakerManager initialized")
 
 	// 5. Discord接続
+	logrus.Info("Creating Discord session")
 	session, err := discordgo.New("Bot " + b.config.Bot.Token)
 	if err != nil {
+		logrus.WithError(err).Error("Failed to create Discord session")
 		return fmt.Errorf("failed to create Discord session: %w", err)
 	}
 	b.session = session
+	logrus.Debug("Discord session created")
 
 	// 6. コマンド準備（レジストリ作成とインタラクションハンドラ登録）
+	logrus.Debug("Preparing commands")
 	if err := b.PrepareCommands(); err != nil {
+		logrus.WithError(err).Error("Failed to prepare commands")
 		return fmt.Errorf("failed to prepare commands: %w", err)
 	}
+	logrus.Debug("Commands prepared")
 
 	// 7. イベントハンドラ登録
+	logrus.Debug("Registering event handlers")
 	if err := b.RegisterEvents(); err != nil {
+		logrus.WithError(err).Error("Failed to register events")
 		return fmt.Errorf("failed to register events: %w", err)
 	}
+	logrus.Debug("Event handlers registered")
 
 	// 8. HTTPサーバー起動（ヘルスチェック/メトリクス）
+	logrus.Debug("Starting HTTP server")
 	go b.startHTTPServer()
+	logrus.Debug("HTTP server started")
 
 	// 9. Bot Ready（Discord接続開始）
 	// コマンドのDiscord登録はReadyイベントハンドラ内で実行される
+	logrus.Info("Opening Discord connection")
 	if err := b.session.Open(); err != nil {
+		logrus.WithError(err).Error("Failed to open Discord connection")
 		return fmt.Errorf("failed to open Discord connection: %w", err)
 	}
+	logrus.Debug("Discord connection opened")
 
 	return nil
 }
@@ -127,7 +154,10 @@ func (b *Bot) Start() error {
 func (b *Bot) Stop() error {
 	const shutdownTimeout = 30 * time.Second
 
+	logrus.Debug("Starting bot shutdown process")
+
 	// 1. コンテキストをキャンセル
+	logrus.Debug("Cancelling context")
 	b.cancel()
 
 	// 2. 新しいイベントの処理を停止
@@ -136,32 +166,43 @@ func (b *Bot) Stop() error {
 	//    - 現在再生中のアイテムは完了させる（最大5秒待機）
 	//    - キューに残っているアイテムは破棄（queue.Clear()）
 	// 4. すべてのVC接続を切断
+	logrus.Debug("Disconnecting all voice connections")
 	b.connMu.Lock()
+	connCount := len(b.voiceConns)
 	for guildID, conn := range b.voiceConns {
+		logrus.WithField("guild_id", guildID).Debug("Leaving voice channel")
 		if err := conn.Leave(); err != nil {
 			logrus.WithError(err).WithField("guild_id", guildID).Error("Error leaving voice channel")
 		}
 	}
 	b.voiceConns = make(map[string]*voice.Connection)
 	b.connMu.Unlock()
+	logrus.WithField("disconnected_count", connCount).Info("All voice connections disconnected")
 
 	// 5. HTTPサーバーを停止
 	if b.httpServer != nil {
+		logrus.Debug("Shutting down HTTP server")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := b.httpServer.Shutdown(shutdownCtx); err != nil {
 			logrus.WithError(err).Error("Error shutting down HTTP server")
+		} else {
+			logrus.Debug("HTTP server shut down successfully")
 		}
 	}
 
 	// 6. Discordセッションを閉じる
 	if b.session != nil {
+		logrus.Debug("Closing Discord session")
 		if err := b.session.Close(); err != nil {
 			logrus.WithError(err).Error("Error closing Discord session")
+		} else {
+			logrus.Debug("Discord session closed")
 		}
 	}
 
 	// 7. すべてのgoroutineの完了を待つ（タイムアウト付き）
+	logrus.Debug("Waiting for all goroutines to complete")
 	done := make(chan struct{})
 	go func() {
 		b.wg.Wait()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
 
 type CommandInfo struct {
@@ -57,16 +58,34 @@ func (r *Registry) RegisterAll(s *discordgo.Session) error {
 }
 
 func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.ApplicationCommandData().Name == "" {
+	commandName := i.ApplicationCommandData().Name
+	if commandName == "" {
 		return
 	}
 
-	handler, exists := r.commands[i.ApplicationCommandData().Name]
+	// コマンド情報をログに記録
+	logrus.WithFields(logrus.Fields{
+		"command":    commandName,
+		"guild_id":   i.GuildID,
+		"user_id":    i.Member.User.ID,
+		"channel_id": i.ChannelID,
+	}).Debug("Command received")
+
+	handler, exists := r.commands[commandName]
 	if !exists {
+		logrus.WithFields(logrus.Fields{
+			"command":  commandName,
+			"guild_id": i.GuildID,
+		}).Warn("Unknown command received")
 		return
 	}
 
 	if err := handler(r.bot, s, i); err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"command":  commandName,
+			"guild_id": i.GuildID,
+			"user_id":  i.Member.User.ID,
+		}).Error("Command handler error")
 		// エラーハンドリング
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -75,6 +94,11 @@ func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.Interact
 				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		})
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"command":  commandName,
+			"guild_id": i.GuildID,
+			"user_id":  i.Member.User.ID,
+		}).Debug("Command completed successfully")
 	}
 }
-

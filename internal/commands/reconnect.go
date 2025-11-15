@@ -14,9 +14,19 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 	guildID := i.GuildID
 	userID := i.Member.User.ID
 
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   guildID,
+		"user_id":    userID,
+		"channel_id": i.ChannelID,
+	}).Debug("Reconnect command started")
+
 	// ユーザーのVC接続を取得
 	vs, err := s.State.VoiceState(guildID, userID)
 	if err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"guild_id": guildID,
+			"user_id":  userID,
+		}).Debug("User not connected to voice channel")
 		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -27,15 +37,26 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 	}
 
 	channelID := vs.ChannelID
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   guildID,
+		"channel_id": channelID,
+	}).Debug("User voice channel found")
 
 	// 既存の接続を切断
 	existingConn, err := b.GetVoiceConnection(guildID)
 	if err == nil {
+		logrus.WithFields(logrus.Fields{
+			"guild_id": guildID,
+		}).Debug("Disconnecting existing voice connection")
 		existingConn.Leave()
 		b.RemoveVoiceConnection(guildID)
 	}
 
 	// 新しい接続を作成
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   guildID,
+		"channel_id": channelID,
+	}).Debug("Creating new voice connection for reconnect")
 	conn, err := voice.NewConnection(s, 50)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to create voice connection")
@@ -62,6 +83,11 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 
 	// Botに接続を登録
 	b.SetVoiceConnection(guildID, conn)
+
+	logrus.WithFields(logrus.Fields{
+		"guild_id":   guildID,
+		"channel_id": channelID,
+	}).Info("Successfully reconnected to voice channel")
 
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
