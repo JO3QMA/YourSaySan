@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,16 +11,13 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config/config.yaml", "Path to config file")
-	flag.Parse()
-
 	// ログ設定
 	utils.InitLogger()
 	logrus.Info("Starting bot application")
 
 	// Bot初期化
 	logrus.Debug("Initializing bot")
-	b, err := bot.NewBot(*configPath)
+	b, err := bot.NewBot()
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create bot")
 	}

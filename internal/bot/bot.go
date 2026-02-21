@@ -49,9 +49,9 @@ type Bot struct {
 	httpServer *http.Server
 }
 
-func NewBot(configPath string) (*Bot, error) {
-	// 1. 設定ファイル読み込み
-	config, err := LoadConfig(configPath)
+func NewBot() (*Bot, error) {
+	// 1. 設定読み込み
+	config, err := LoadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
