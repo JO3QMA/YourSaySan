@@ -2,7 +2,7 @@
 # ==================================
 # 1. ビルドステージ
 # ==================================
-FROM golang:1.25-bullseye AS builder
+FROM golang:1.25-trixie AS builder
 
 # ビルド依存関係
 # Opusエンコーダー（USE_PION_OPUS=true）用: libopus-dev, libopusfile-dev（CGOビルド時）
@@ -32,7 +32,7 @@ RUN CGO_ENABLED=1 go build -o yoursay-bot ./cmd/bot
 # ==================================
 # 2. ランタイムステージ
 # ==================================
-FROM debian:bullseye-slim
+FROM debian:trixie-slim
 
 # システム依存関係
 # DCAエンコーダー（デフォルト）用: ffmpeg
@@ -59,7 +59,7 @@ CMD ["./yoursay-bot"]
 # ==================================
 # 3. 開発ステージ
 # ==================================
-FROM golang:1.25-bullseye AS development
+FROM golang:1.25-trixie AS development
 
 # ビルド依存関係と開発ツール
 # Opusエンコーダー（USE_PION_OPUS=true）用: libopus-dev, libopusfile-dev（CGOビルド時）
