@@ -5,15 +5,14 @@ import (
 	"os"
 )
 
-// Encoder は音声エンコーダーのインターフェース
+// Encoder は WAV データを Opus フレームのスライスに変換するインターフェース。
+// ストリーミングではなく一括変換とすることで goroutine リークを防ぐ。
 type Encoder interface {
-	EncodeBytes(ctx context.Context, wavData []byte) (<-chan []byte, error)
-	EncodeFile(ctx context.Context, wavPath string) (<-chan []byte, error)
+	Encode(ctx context.Context, wavData []byte) ([][]byte, error)
 }
 
-// NewEncoder は環境変数に基づいてエンコーダーを作成します
-// USE_PION_OPUS=true の場合、Opusエンコーダーを使用
-// それ以外の場合、DCAエンコーダーを使用（後方互換性のため）
+// NewEncoder は環境変数に基づいてエンコーダーを作成する。
+// USE_PION_OPUS=true の場合 Opus エンコーダー、それ以外は DCA エンコーダー。
 func NewEncoder() (Encoder, error) {
 	if os.Getenv("USE_PION_OPUS") == "true" {
 		return NewOpusEncoder()

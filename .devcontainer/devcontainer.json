@@ -6,7 +6,7 @@
   "service": "yousaysan",
   "workspaceFolder": "/app",
   "overrideCommand": true,
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global core.pager cat && go mod download && go install github.com/mrjoshuak/godoc-mcp@latest",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global core.pager cat && sudo mkdir -p /go/pkg/mod /go/cache && sudo chown -R vscode:vscode /go && go mod download && go install github.com/mrjoshuak/godoc-mcp@latest",
 
   "remoteEnv": {
     "GOPATH": "/go",
@@ -15,17 +15,9 @@
     "GIT_PAGER": "cat"
   },
 
+
+  "remoteUser": "vscode",
   "forwardPorts": [50021],
-  "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "username": "root",
-      "installZsh": false,
-      "upgradePackages": true
-    },
-    "ghcr.io/devcontainers/features/go:1": {
-      "version": "latest"
-    }
-  },
   "customizations": {
     "vscode": {
       "extensions": [

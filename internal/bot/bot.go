@@ -116,6 +116,12 @@ func (b *Bot) Start() error {
 		return fmt.Errorf("failed to create Discord session: %w", err)
 	}
 	b.session = session
+
+	session.Identify.Intents = discordgo.IntentsGuilds |
+		discordgo.IntentsGuildMessages |
+		discordgo.IntentsMessageContent |
+		discordgo.IntentsGuildVoiceStates
+
 	logrus.Debug("Discord session created")
 
 	// 6. コマンド準備（レジストリ作成とインタラクションハンドラ登録）
@@ -319,6 +325,14 @@ func (b *Bot) GetVoiceConnection(guildID string) (*voice.Connection, error) {
 func (b *Bot) SetVoiceConnection(guildID string, conn *voice.Connection) {
 	b.connMu.Lock()
 	defer b.connMu.Unlock()
+
+	// 既存の接続がある場合はリソースを解放してから差し替える
+	if old, ok := b.voiceConns[guildID]; ok && old != nil {
+		if err := old.Leave(); err != nil {
+			logrus.WithError(err).WithField("guild_id", guildID).Warn("error leaving old voice connection on replace")
+		}
+	}
+
 	b.voiceConns[guildID] = conn
 }
 

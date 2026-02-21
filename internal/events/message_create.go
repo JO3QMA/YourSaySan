@@ -13,7 +13,7 @@ import (
 func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// 1. Botのメッセージはスキップ
-		if m.Author.Bot {
+		if m.Author == nil || m.Author.Bot {
 			return
 		}
 
@@ -75,7 +75,7 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		}).Debug("Message transformed for TTS")
 
 		// 7. 話者設定取得
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		speakerID, err := b.GetSpeakerManager().GetSpeaker(ctx, m.Author.ID)

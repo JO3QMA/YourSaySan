@@ -7,7 +7,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 
 ## 環境
 
-*   Ruby 3.4.2
+*   Go 1.25
 *   Docker
 *   Docker Compose
 *   GitHub Actions (Dockerイメージの自動ビルド)
@@ -21,11 +21,17 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 
 ## 使い方
 
-1.  `config.yml`を作成し、必要な情報を設定します。`config.sample.yml`を参考にしてください。
+1.  `.env`ファイルを作成し、必要な環境変数を設定します。
+
+    ```bash
+    DISCORD_BOT_TOKEN=your_bot_token
+    DISCORD_CLIENT_ID=your_client_id
+    ```
+
 2.  Docker Composeを使用して、BotとVoicevox Engineを起動します。
 
     ```bash
-    docker-compose up --build
+    docker compose up --build
     ```
 
 3.  DiscordでBotを招待し、`/ping`コマンドを試してみてください。`Pong!`と返信されれば、Botは正常に動作しています。
@@ -86,7 +92,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 ### 手順
 
 1. エディタでこのリポジトリを開き、「Reopen in Container」を実行します。
-   - 初回起動時に `bundle install` が自動実行され、`config.yml` が無ければ `config.sample.yml` から生成されます。
+   - 初回起動時に `go mod download` が自動実行されます。
 2. 環境変数を設定します。以下の環境変数を設定してください：
 
    - `DISCORD_BOT_TOKEN`（必須）
@@ -100,7 +106,7 @@ Voicevox Engineを使用して、テキストを音声に変換し、Discordの�
 3. コンテナ内ターミナルで Bot を起動します。
 
    ```bash
-   ruby run.rb
+   go run ./cmd/bot
    ```
 
 メモ:
@@ -154,24 +160,24 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 ```
 
-## 設定ファイル (config.yml)
+## 設定ファイル (config/config.yaml)
 
 ```yaml
 bot:
-  token: <%= ENV['DISCORD_BOT_TOKEN'] %>       # Discord BotのToken
-  client_id: <%= ENV['DISCORD_CLIENT_ID'] %>   # Discord BotのClient ID
-  prefix: '!'                   # コマンドのプレフィックス
-  status: '[TESTING] 読み上げBot' # Botのステータス
-  owner: <%= ENV['DISCORD_OWNER_ID'] || 123456789012345678 %> # BotのオーナーID
+  token: ${DISCORD_BOT_TOKEN}       # Discord BotのToken
+  client_id: ${DISCORD_CLIENT_ID}   # Discord BotのClient ID
+  status: "[TESTING] 読み上げBot"   # Botのステータス
+  owner: ${DISCORD_OWNER_ID:-123456789012345678} # BotのオーナーID
 
 voicevox:
-  max: 50                      # 最大文字数
-  host: <%= ENV['VOICEVOX_HOST'] || 'http://voicevox:50021' %> # Voicevox Engineのホスト
+  max_chars: 200               # 1回の読み上げ最大文字数
+  max_message_length: 50       # メッセージの最大長（超えた場合は切り捨て）
+  host: ${VOICEVOX_HOST:-http://voicevox:50021} # Voicevox Engineのホスト
 
 redis:
-  host: <%= ENV['REDIS_HOST'] || 'redis' %>    # Redisのホスト
-  port: <%= ENV['REDIS_PORT'] || 6379 %>       # Redisのポート
-  db: <%= ENV['REDIS_DB'] || 0 %>              # Redisのデータベース番号
+  host: ${REDIS_HOST:-redis}   # Redisのホスト
+  port: ${REDIS_PORT:-6379}    # Redisのポート
+  db: ${REDIS_DB:-0}           # Redisのデータベース番号
 ```
 
 ## 機能

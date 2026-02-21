@@ -63,11 +63,17 @@ func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.Interact
 		return
 	}
 
-	// コマンド情報をログに記録
+	userID := ""
+	if i.Member != nil && i.Member.User != nil {
+		userID = i.Member.User.ID
+	} else if i.User != nil {
+		userID = i.User.ID
+	}
+
 	logrus.WithFields(logrus.Fields{
 		"command":    commandName,
 		"guild_id":   i.GuildID,
-		"user_id":    i.Member.User.ID,
+		"user_id":    userID,
 		"channel_id": i.ChannelID,
 	}).Debug("Command received")
 
@@ -84,9 +90,8 @@ func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.Interact
 		logrus.WithError(err).WithFields(logrus.Fields{
 			"command":  commandName,
 			"guild_id": i.GuildID,
-			"user_id":  i.Member.User.ID,
+			"user_id":  userID,
 		}).Error("Command handler error")
-		// エラーハンドリング
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -98,7 +103,7 @@ func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.Interact
 		logrus.WithFields(logrus.Fields{
 			"command":  commandName,
 			"guild_id": i.GuildID,
-			"user_id":  i.Member.User.ID,
+			"user_id":  userID,
 		}).Debug("Command completed successfully")
 	}
 }

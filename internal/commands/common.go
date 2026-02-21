@@ -2,7 +2,24 @@ package commands
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
+
+// deferInteraction はインタラクションを即座に Deferred で応答し、後から編集するための関数を返す。
+// Discord の3秒インタラクションタイムアウトを回避するために使用する。
+func deferInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) (func(content string), error) {
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	}); err != nil {
+		return nil, err
+	}
+	return func(content string) {
+		edit := &discordgo.WebhookEdit{Content: &content}
+		if _, err := s.InteractionResponseEdit(i.Interaction, edit); err != nil {
+			logrus.WithError(err).Error("Failed to edit deferred interaction response")
+		}
+	}, nil
+}
 
 // RegisterAllCommands はすべてのコマンドを登録する
 func RegisterAllCommands(b BotInterface) *Registry {

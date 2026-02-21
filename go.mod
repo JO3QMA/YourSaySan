@@ -1,9 +1,11 @@
 module github.com/JO3QMA/YourSaySan
 
-go 1.25
+go 1.24.0
+
+toolchain go1.24.6
 
 require (
-	github.com/bwmarrin/discordgo v0.29.0
+	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/go-audio/audio v1.0.0
 	github.com/go-audio/wav v1.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7

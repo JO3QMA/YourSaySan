@@ -16,9 +16,9 @@ func VoiceStateUpdateHandler(b BotInterface) func(s *discordgo.Session, vs *disc
 		// BotのVC接続を確認
 		botUserID := s.State.User.ID
 		var botVoiceState *discordgo.VoiceState
-		for _, vs := range guild.VoiceStates {
-			if vs.UserID == botUserID {
-				botVoiceState = vs
+		for _, voiceState := range guild.VoiceStates {
+			if voiceState.UserID == botUserID {
+				botVoiceState = voiceState
 				break
 			}
 		}
