@@ -43,13 +43,19 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 	}).Debug("User voice channel found")
 
 	// 既存の接続を切断
-	existingConn, err := b.GetVoiceConnection(guildID)
-	if err == nil {
+	existingConn, connErr := b.GetVoiceConnection(guildID)
+	if connErr == nil {
 		logrus.WithFields(logrus.Fields{
 			"guild_id": guildID,
 		}).Debug("Disconnecting existing voice connection")
 		existingConn.Leave()
 		b.RemoveVoiceConnection(guildID)
+	}
+
+	// Discord の3秒タイムアウト対策: 先に Deferred で ACK してから Join する
+	editReply, err := deferInteraction(s, i)
+	if err != nil {
+		return err
 	}
 
 	// 新しい接続を作成
@@ -60,25 +66,15 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 	conn, err := voice.NewConnection(s, 50)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to create voice connection")
-		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("VC接続の作成に失敗しました: %v", err),
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
+		editReply(fmt.Sprintf("VC接続の作成に失敗しました: %v", err))
+		return nil
 	}
 	ctx := b.GetContext()
 
 	if err := conn.Join(ctx, guildID, channelID); err != nil {
 		logrus.WithError(err).Error("Failed to reconnect to voice channel")
-		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("VCへの再接続に失敗しました: %v", err),
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
+		editReply(fmt.Sprintf("VCへの再接続に失敗しました: %v", err))
+		return nil
 	}
 
 	// Botに接続を登録
@@ -89,10 +85,6 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 		"channel_id": channelID,
 	}).Info("Successfully reconnected to voice channel")
 
-	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("VC <#%s> に再接続しました。", channelID),
-		},
-	})
+	editReply(fmt.Sprintf("VC <#%s> に再接続しました。", channelID))
+	return nil
 }

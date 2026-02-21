@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -13,12 +12,6 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
-)
-
-var (
-	ErrVoiceVoxUnavailable    = errors.New("voicevox engine unavailable")
-	ErrVoiceVoxTimeout        = errors.New("voicevox request timeout")
-	ErrVoiceVoxInvalidSpeaker = errors.New("invalid speaker ID")
 )
 
 type Client struct {
@@ -74,7 +67,7 @@ func (c *Client) Speak(ctx context.Context, text string, speakerID int) ([]byte,
 func (c *Client) speakWithRetry(ctx context.Context, text string, speakerID int) ([]byte, error) {
 	var lastErr error
 
-	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+	for attempt := 0; attempt < c.maxRetries; attempt++ {
 		if attempt > 0 {
 			// 指数バックオフ
 			backoff := c.retryBackoff * time.Duration(1<<uint(attempt-1))
@@ -106,7 +99,7 @@ func (c *Client) speakWithRetry(ctx context.Context, text string, speakerID int)
 		}
 	}
 
-	return nil, fmt.Errorf("failed after %d retries: %w", c.maxRetries, lastErr)
+	return nil, fmt.Errorf("failed after %d attempts: %w", c.maxRetries, lastErr)
 }
 
 func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]byte, error) {

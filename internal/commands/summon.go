@@ -43,9 +43,8 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 	}).Debug("User voice channel found")
 
 	// 既存の接続を確認
-	existingConn, err := b.GetVoiceConnection(guildID)
-	if err == nil {
-		// 既に接続している場合は、同じチャンネルかチェック
+	existingConn, connErr := b.GetVoiceConnection(guildID)
+	if connErr == nil {
 		if existingConn.GetChannelID() == channelID {
 			logrus.WithFields(logrus.Fields{
 				"guild_id":   guildID,
@@ -59,9 +58,8 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 				},
 			})
 		}
-		// 別のチャンネルに接続している場合は切断
 		logrus.WithFields(logrus.Fields{
-			"guild_id":   guildID,
+			"guild_id":    guildID,
 			"old_channel": existingConn.GetChannelID(),
 			"new_channel": channelID,
 		}).Debug("Disconnecting from old voice channel")
@@ -69,33 +67,29 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 		b.RemoveVoiceConnection(guildID)
 	}
 
+	// Discord の3秒タイムアウト対策: 先に Deferred で ACK してから Join する
+	editReply, err := deferInteraction(s, i)
+	if err != nil {
+		return err
+	}
+
 	// 新しい接続を作成
 	logrus.WithFields(logrus.Fields{
 		"guild_id":   guildID,
 		"channel_id": channelID,
 	}).Debug("Creating new voice connection")
-	conn, err := voice.NewConnection(s, 50) // 最大キューサイズ: 50
+	conn, err := voice.NewConnection(s, 50)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to create voice connection")
-		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("VC接続の作成に失敗しました: %v", err),
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
+		editReply(fmt.Sprintf("VC接続の作成に失敗しました: %v", err))
+		return nil
 	}
 	ctx := b.GetContext()
 
 	if err := conn.Join(ctx, guildID, channelID); err != nil {
 		logrus.WithError(err).Error("Failed to join voice channel")
-		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("VCへの接続に失敗しました: %v", err),
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
+		editReply(fmt.Sprintf("VCへの接続に失敗しました: %v", err))
+		return nil
 	}
 
 	// Botに接続を登録
@@ -105,15 +99,11 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 	b.GetState().AddTextChannel(guildID, i.ChannelID)
 
 	logrus.WithFields(logrus.Fields{
-		"guild_id":   guildID,
-		"channel_id": channelID,
+		"guild_id":        guildID,
+		"channel_id":      channelID,
 		"text_channel_id": i.ChannelID,
 	}).Info("Successfully joined voice channel")
 
-	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("VC <#%s> に参加しました。", channelID),
-		},
-	})
+	editReply(fmt.Sprintf("VC <#%s> に参加しました。", channelID))
+	return nil
 }
