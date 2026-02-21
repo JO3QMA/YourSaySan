@@ -2,9 +2,7 @@ package voice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -121,23 +119,7 @@ func (p *Player) playItem(ctx context.Context, item AudioItem) {
 		"audio_size": len(item.Data),
 	}).Trace("encoding audio")
 
-	// #region agent log A/B/C
-	dbgLog("player.go:playItem-entry", "playItem called", "A", map[string]interface{}{"guild_id": item.GuildID, "audio_bytes": len(item.Data)})
-	// #endregion
-
 	frames, err := p.encoder.Encode(playCtx, item.Data)
-
-	// #region agent log A/C
-	encErr := ""
-	if err != nil {
-		encErr = err.Error()
-	}
-	ctxErr := ""
-	if playCtx.Err() != nil {
-		ctxErr = playCtx.Err().Error()
-	}
-	dbgLog("player.go:after-encode", "encode result", "A", map[string]interface{}{"frame_count": len(frames), "encode_err": encErr, "ctx_err": ctxErr})
-	// #endregion
 
 	if err != nil {
 		if playCtx.Err() != nil {
@@ -148,9 +130,6 @@ func (p *Player) playItem(ctx context.Context, item AudioItem) {
 	}
 
 	if len(frames) == 0 {
-		// #region agent log A
-		dbgLog("player.go:zero-frames", "encoder returned 0 frames", "A", map[string]interface{}{"guild_id": item.GuildID})
-		// #endregion
 		return
 	}
 
@@ -170,33 +149,20 @@ func (p *Player) playItem(ctx context.Context, item AudioItem) {
 	for _, frame := range frames {
 		select {
 		case <-playCtx.Done():
-			// #region agent log B/D
-			dbgLog("player.go:playCtx-cancelled", "playCtx cancelled during send", "B", map[string]interface{}{"sent": sentCount, "total": len(frames)})
-			// #endregion
 			return
 		case <-p.shutdownCh:
-			// #region agent log B
-			dbgLog("player.go:shutdown-during-send", "shutdownCh closed during send", "B", map[string]interface{}{"sent": sentCount, "total": len(frames)})
-			// #endregion
 			return
 		case <-ticker.C:
 			select {
 			case p.conn.OpusSend <- frame:
 				sentCount++
 			case <-playCtx.Done():
-				// #region agent log B/D
-				dbgLog("player.go:playCtx-inner", "playCtx cancelled on OpusSend", "B", map[string]interface{}{"sent": sentCount, "total": len(frames)})
-				// #endregion
 				return
 			case <-p.shutdownCh:
 				return
 			}
 		}
 	}
-
-	// #region agent log B/D
-	dbgLog("player.go:send-complete", "all frames sent", "B", map[string]interface{}{"sent": sentCount, "total": len(frames)})
-	// #endregion
 
 	logrus.WithField("guild_id", item.GuildID).Trace("audio playback completed")
 }
@@ -229,23 +195,3 @@ func formatDuration(frameCount int) string {
 	return fmt.Sprintf("%dms", ms)
 }
 
-// #region agent log helper
-func dbgLog(location, msg, hyp string, data map[string]interface{}) {
-	payload := map[string]interface{}{
-		"sessionId":    "148c43",
-		"runId":        "run4",
-		"hypothesisId": hyp,
-		"location":     location,
-		"message":      msg,
-		"data":         data,
-		"timestamp":    time.Now().UnixMilli(),
-	}
-	b, _ := json.Marshal(payload)
-	f, _ := os.OpenFile("/app/.cursor/debug-148c43.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if f != nil {
-		f.Write(append(b, '\n'))
-		f.Close()
-	}
-}
-
-// #endregion
