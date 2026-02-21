@@ -13,7 +13,7 @@
 - TTS エンジン: [VoiceVox Engine](https://voicevox.hiroshiba.jp/)（HTTP API）
 - ストレージ: Redis（ユーザーごとの話者設定を永続化）
 - ロギング: Logrus（構造化ログ）
-- 設定: Viper + YAML（環境変数展開）
+- 設定: 環境変数（`godotenv` + `os.Getenv`）
 
 ---
 
@@ -25,7 +25,7 @@
 ├── internal/
 │   ├── bot/                     # Bot コア
 │   │   ├── bot.go               # Bot 構造体・ライフサイクル管理
-│   │   ├── config.go            # 設定ロード（Viper）
+│   │   ├── config.go            # 設定ロード（環境変数）
 │   │   ├── state.go             # Bot 状態管理
 │   │   └── http.go              # ヘルスチェック・メトリクス HTTP サーバー（:8080）
 │   ├── commands/                # スラッシュコマンドハンドラ
@@ -56,7 +56,7 @@
 │   ├── logger.go                # Logrus 初期化
 │   └── message.go               # メッセージ前処理
 ├── config/config.yaml           # 設定ファイル（環境変数展開: ${VAR:-default}）
-├── compose.yml                  # 本番 Docker Compose（bot + voicevox + redis）
+├── compose.yaml                  # 本番 Docker Compose（bot + voicevox + redis）
 ├── Dockerfile                   # マルチステージビルド（builder / runtime / development）
 └── .devcontainer/               # DevContainer 設定
     ├── devcontainer.json
@@ -126,24 +126,31 @@ go run ./cmd/bot
 
 ---
 
-## 設定（config/config.yaml）
+## 設定（環境変数）
 
-```yaml
-bot:
-  token: ${DISCORD_BOT_TOKEN}
-  client_id: ${DISCORD_CLIENT_ID}
-  status: "[TESTING] 読み上げBot"
-  owner: ${DISCORD_OWNER_ID:-123456789012345678}
+設定は環境変数から読み込まれます。`.env`ファイルが存在する場合は、自動的に読み込まれます。
 
-voicevox:
-  max_chars: 200           # 1回の読み上げ最大文字数
-  max_message_length: 50   # メッセージの最大長（超えた場合は切り捨て）
-  host: ${VOICEVOX_HOST:-http://voicevox:50021}
+**`Config`構造体（`internal/bot/config.go`）:**
 
-redis:
-  host: ${REDIS_HOST:-redis}
-  port: ${REDIS_PORT:-6379}
-  db: ${REDIS_DB:-0}
+```go
+type Config struct {
+	Bot struct {
+		Token    string // DISCORD_BOT_TOKEN
+		ClientID string // DISCORD_CLIENT_ID
+		Status   string // DISCORD_BOT_STATUS
+		OwnerID  string // DISCORD_OWNER_ID
+	}
+	VoiceVox struct {
+		MaxChars         int    // VOICEVOX_MAX_CHARS
+		MaxMessageLength int    // VOICEVOX_MAX_MESSAGE_LENGTH
+		Host             string // VOICEVOX_HOST
+	}
+	Redis struct {
+		Host string // REDIS_HOST
+		Port int    // REDIS_PORT
+		DB   int    // REDIS_DB
+	}
+}
 ```
 
 **必須環境変数:**
@@ -151,13 +158,18 @@ redis:
 - `DISCORD_CLIENT_ID` — Discord Bot クライアント ID
 
 **任意環境変数:**
-- `DISCORD_OWNER_ID` — Bot オーナーの Discord ユーザー ID
-- `VOICEVOX_HOST` — VoiceVox Engine のホスト URL
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` — Redis 接続情報
+- `DISCORD_OWNER_ID` — Bot オーナーの Discord ユーザー ID（デフォルト: `123456789012345678`）
+- `DISCORD_BOT_STATUS` — Bot のステータス（デフォルト: `[TESTING] 読み上げBot`）
+- `VOICEVOX_HOST` — VoiceVox Engine のホスト URL（デフォルト: `http://voicevox:50021`）
+- `VOICEVOX_MAX_CHARS` — 1回の読み上げ最大文字数（デフォルト: `200`）
+- `VOICEVOX_MAX_MESSAGE_LENGTH` — メッセージの最大長（デフォルト: `50`）
+- `REDIS_HOST` — Redis ホスト（デフォルト: `redis`）
+- `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
+- `REDIS_DB` — Redis DB番号（デフォルト: `0`）
+- `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
 - `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
 - `LOG_FORMAT` — ログ形式（`text`/`json`、デフォルト: `text`）
 - `HTTP_PORT` — ヘルスチェックサーバーのポート（デフォルト: `8080`）
-- `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用
 
 ---
 
