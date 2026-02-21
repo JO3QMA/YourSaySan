@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
+	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -51,52 +50,59 @@ func (c *Config) GetVoiceVoxMaxMessageLength() int {
 	return c.VoiceVox.MaxMessageLength
 }
 
-func LoadConfig(path string) (*Config, error) {
+func LoadConfig() (*Config, error) {
 	// 1. .envファイル読み込み
 	if err := godotenv.Load(); err != nil {
 		// .envファイルがなくても続行（環境変数から直接読み込む）
 	}
 
-	// 2. Viperで設定ファイル読み込み
-	viper.SetConfigFile(path)
-	viper.SetConfigType("yaml")
-
-	// 3. 環境変数の自動読み込み
-	viper.AutomaticEnv()
-	viper.BindEnv("bot.token", "DISCORD_BOT_TOKEN")
-	viper.BindEnv("bot.client_id", "DISCORD_CLIENT_ID")
-	viper.BindEnv("bot.owner", "DISCORD_OWNER_ID")
-	viper.BindEnv("voicevox.host", "VOICEVOX_HOST")
-	viper.BindEnv("redis.host", "REDIS_HOST")
-	viper.BindEnv("redis.port", "REDIS_PORT")
-	viper.BindEnv("redis.db", "REDIS_DB")
-
-	// 4. 設定ファイル読み込み
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	// 4-1. 環境変数展開（YAML内の${VAR}形式を展開）
-	for _, key := range viper.AllKeys() {
-		val := viper.GetString(key)
-		if strings.Contains(val, "${") {
-			expanded := os.ExpandEnv(val)
-			viper.Set(key, expanded)
-		}
-	}
-
-	// 5. Config構造体にマッピング
+	// 2. 環境変数から直接設定を読み込み
 	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+
+	// Bot設定
+	config.Bot.Token = os.Getenv("DISCORD_BOT_TOKEN")
+	config.Bot.ClientID = os.Getenv("DISCORD_CLIENT_ID")
+	config.Bot.Status = getEnvWithDefault("DISCORD_BOT_STATUS", "[TESTING] 読み上げBot")
+	if ownerID := os.Getenv("DISCORD_OWNER_ID"); ownerID != "" {
+		config.Bot.OwnerID = ownerID
+	} else {
+		config.Bot.OwnerID = "123456789012345678" // デフォルト値
 	}
 
-	// 6. 設定バリデーション
+	// VoiceVox設定
+	config.VoiceVox.Host = getEnvWithDefault("VOICEVOX_HOST", "http://voicevox:50021")
+	config.VoiceVox.MaxChars = getEnvIntWithDefault("VOICEVOX_MAX_CHARS", 200)
+	config.VoiceVox.MaxMessageLength = getEnvIntWithDefault("VOICEVOX_MAX_MESSAGE_LENGTH", 50)
+
+	// Redis設定
+	config.Redis.Host = getEnvWithDefault("REDIS_HOST", "redis")
+	config.Redis.Port = getEnvIntWithDefault("REDIS_PORT", 6379)
+	config.Redis.DB = getEnvIntWithDefault("REDIS_DB", 0)
+
+	// 3. 設定バリデーション
 	if err := validateConfig(&config); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &config, nil
+}
+
+// getEnvWithDefault は環境変数を取得し、デフォルト値を返す
+func getEnvWithDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvIntWithDefault は環境変数をintとして取得し、デフォルト値を返す
+func getEnvIntWithDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
 }
 
 func validateConfig(config *Config) error {

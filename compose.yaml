@@ -43,8 +43,14 @@ services:
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
       - DISCORD_OWNER_ID=${DISCORD_OWNER_ID}
-    volumes:
-      - ./config/config.yaml:/app/config/config.yaml:ro
+      - DISCORD_BOT_STATUS=${DISCORD_BOT_STATUS:-[TESTING] 読み上げBot}
+      - VOICEVOX_HOST=${VOICEVOX_HOST:-http://voicevox:50021}
+      - VOICEVOX_MAX_CHARS=${VOICEVOX_MAX_CHARS:-200}
+      - VOICEVOX_MAX_MESSAGE_LENGTH=${VOICEVOX_MAX_MESSAGE_LENGTH:-50}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - USE_PION_OPUS=${USE_PION_OPUS:-true}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
