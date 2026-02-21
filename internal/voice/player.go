@@ -194,4 +194,3 @@ func formatDuration(frameCount int) string {
 	ms := frameCount * 20
 	return fmt.Sprintf("%dms", ms)
 }
-

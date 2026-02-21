@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/go:1-bullseye
+FROM mcr.microsoft.com/devcontainers/go:1-trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
