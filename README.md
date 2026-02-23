@@ -160,25 +160,37 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 ```
 
-## 設定ファイル (config/config.yaml)
+## 設定（環境変数）
 
-```yaml
-bot:
-  token: ${DISCORD_BOT_TOKEN}       # Discord BotのToken
-  client_id: ${DISCORD_CLIENT_ID}   # Discord BotのClient ID
-  status: "[TESTING] 読み上げBot"   # Botのステータス
-  owner: ${DISCORD_OWNER_ID:-123456789012345678} # BotのオーナーID
+Botの設定は環境変数で行います。`.env`ファイルを作成することで、自動的に読み込まれます。
 
-voicevox:
-  max_chars: 200               # 1回の読み上げ最大文字数
-  max_message_length: 50       # メッセージの最大長（超えた場合は切り捨て）
-  host: ${VOICEVOX_HOST:-http://voicevox:50021} # Voicevox Engineのホスト
+**必須環境変数:**
+- `DISCORD_BOT_TOKEN` — Discord Bot トークン
+- `DISCORD_CLIENT_ID` — Discord Bot クライアント ID
 
-redis:
-  host: ${REDIS_HOST:-redis}   # Redisのホスト
-  port: ${REDIS_PORT:-6379}    # Redisのポート
-  db: ${REDIS_DB:-0}           # Redisのデータベース番号
-```
+**基本設定:**
+- `DISCORD_OWNER_ID` — Bot オーナーの Discord ユーザー ID（デフォルト: `123456789012345678`）
+- `DISCORD_BOT_STATUS` — Bot のステータス（デフォルト: `[TESTING] 読み上げBot`）
+
+**VoiceVox設定:**
+- `VOICEVOX_HOST` — VoiceVox Engine のホスト URL（デフォルト: `http://voicevox:50021`）
+- `VOICEVOX_MAX_CHARS` — 1回の読み上げ最大文字数（デフォルト: `200`）
+- `VOICEVOX_MAX_MESSAGE_LENGTH` — メッセージの最大長（デフォルト: `50`）
+
+**Redis設定:**
+- `REDIS_HOST` — Redis ホスト（デフォルト: `redis`）
+- `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
+- `REDIS_DB` — Redis DB番号（デフォルト: `0`）
+
+**高度な設定:**
+- `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
+  - 詳細: `docs/OPUS_MIGRATION.md`
+- `HTTP_PORT` — ヘルスチェックサーバーのポート（デフォルト: `8080`）
+
+**ロギング設定:**
+- `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
+- `LOG_FORMAT` — ログ形式（`text`/`json`、デフォルト: `text`）
+
 
 ## 機能
 
