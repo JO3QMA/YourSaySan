@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	opusSampleRate  = 48000
-	opusChannels    = 2
-	opusBitrate     = 64000
-	opusFrameMs     = 20
+	opusSampleRate   = 48000
+	opusChannels     = 2
+	opusBitrate      = 64000
+	opusFrameMs      = 20
 	opusFrameSamples = opusSampleRate * opusFrameMs / 1000 // 960
-	opusMaxPacket   = 4000
+	opusMaxPacket    = 4000
 )
 
 // OpusEncoder は CGO opus ライブラリで WAV → Opus に変換するエンコーダー。
@@ -47,7 +47,9 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 		return nil, fmt.Errorf("unsupported channel count %d (require 1 or 2)", channels)
 	}
 
-	enc, err := opus.NewEncoder(sampleRate, channels, opus.AppVoIP)
+	// Discord はステレオ (2ch) 48kHz を要求するため、常にステレオでエンコードする
+	const outChannels = 2
+	enc, err := opus.NewEncoder(sampleRate, outChannels, opus.AppVoIP)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create opus encoder: %w", err)
 	}
@@ -59,10 +61,12 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 		return nil, fmt.Errorf("failed to seek to PCM chunk: %w", err)
 	}
 
-	frameSamples := opusFrameSamples * channels
+	// 1フレームあたりの出力サンプル数 (20ms * 48kHz * 2ch = 1920)
+	outFrameSamples := opusFrameSamples * outChannels
+	// 入力バッファ (1フレーム分の入力を読み込む)
 	buf := &audio.IntBuffer{
 		Format: &audio.Format{NumChannels: channels, SampleRate: sampleRate},
-		Data:   make([]int, frameSamples),
+		Data:   make([]int, opusFrameSamples*channels),
 	}
 	opusBuf := make([]byte, opusMaxPacket)
 
@@ -88,15 +92,16 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 			return nil, ctx.Err()
 		}
 
-		_, err := dec.PCMBuffer(buf)
-		if err == io.EOF || (err == nil && len(buf.Data) == 0) {
+		n, err := dec.PCMBuffer(buf)
+		if err == io.EOF || (err == nil && n == 0) {
 			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read PCM: %w", err)
 		}
 
-		for _, s := range buf.Data {
+		for i := 0; i < n; i++ {
+			s := buf.Data[i]
 			var s16 int16
 			switch {
 			case s > 32767:
@@ -106,20 +111,27 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 			default:
 				s16 = int16(s)
 			}
-			pending = append(pending, s16)
+
+			if channels == 1 {
+				// モノラルをステレオに変換（同じ値を2回入れる）
+				pending = append(pending, s16, s16)
+			} else {
+				// ステレオの場合はそのまま
+				pending = append(pending, s16)
+			}
 		}
 
-		for len(pending) >= frameSamples {
-			if err := flush(pending[:frameSamples]); err != nil {
+		for len(pending) >= outFrameSamples {
+			if err := flush(pending[:outFrameSamples]); err != nil {
 				return nil, err
 			}
-			pending = pending[frameSamples:]
+			pending = pending[outFrameSamples:]
 		}
 	}
 
 	// 最後の端数フレームをゼロパディングしてエンコード
 	if len(pending) > 0 {
-		padded := make([]int16, frameSamples)
+		padded := make([]int16, outFrameSamples)
 		copy(padded, pending)
 		if err := flush(padded); err != nil {
 			return nil, err
