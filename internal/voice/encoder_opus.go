@@ -63,7 +63,9 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 
 	// 1フレームあたりの出力サンプル数 (20ms * 48kHz * 2ch = 1920)
 	outFrameSamples := opusFrameSamples * outChannels
-	// 入力バッファ (1フレーム分の入力を読み込む)
+	// 入力バッファ: 1フレーム分 (960サンプル) × 入力チャンネル数 を一度に読み込む。
+	// モノラル (channels=1) の場合は後でアップミックスするため、
+	// 出力チャンネル数 (outChannels=2) ではなく入力チャンネル数を使う。
 	buf := &audio.IntBuffer{
 		Format: &audio.Format{NumChannels: channels, SampleRate: sampleRate},
 		Data:   make([]int, opusFrameSamples*channels),
