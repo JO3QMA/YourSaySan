@@ -21,7 +21,7 @@ func phraseEndOK(m morph) bool {
 		return false
 	case "助詞", "助動詞", "記号", "感動詞":
 		return true
-	case "名詞", "名詞接続", "形容動詞語幹", "副詞可能", "副詞":
+	case "名詞", "副詞":
 		return true
 	case "連体詞":
 		return true

@@ -39,10 +39,6 @@ func toKatakanaReading(s string) string {
 	for _, r := range s {
 		switch {
 		case r >= 'ぁ' && r <= 'ゖ':
-			if r == 'ゝ' || r == 'ゞ' {
-				b.WriteRune(r)
-				continue
-			}
 			b.WriteRune(r + 0x60)
 		case r >= 'ァ' && r <= 'ヺ':
 			b.WriteRune(r)

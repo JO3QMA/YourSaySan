@@ -8,7 +8,6 @@ import (
 	"github.com/ikawaha/kagome-dict/dict"
 	ipadic "github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
-	"github.com/ikawaha/kagome/v2/tokenizer/lattice"
 )
 
 // Analyzer は Kagome IPA 辞書による川柳判定（形態素境界・読みモーラ）。
@@ -63,19 +62,12 @@ func (a *Analyzer) FindInBlob(blob string, minRunes, maxRunes int) (match string
 		return "", false
 	}
 
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	la := lattice.New(a.dic, nil)
-	defer la.Free()
-	la.Build(blob)
-	la.Forward(lattice.Normal)
-
+	// blob 経路は読み取り専用の辞書参照のみ（arcsFromPosition）。Tokenizer と mutex は共有しない。
 	targets := []int{5, 7, 5}
 	rc := utf8.RuneCountInString(blob)
 
 	for s := 0; s < rc; s++ {
-		if end, found := dfsBlobMatch(a.dic, la, rc, s, targets); found {
+		if end, found := dfsBlobMatch(a.dic, blob, rc, s, targets); found {
 			return substringByRunes(blob, s, end), true
 		}
 	}
@@ -97,12 +89,12 @@ func (a *Analyzer) tokenizeLine(line string) []morph {
 }
 
 type dfsMemoKey struct {
-	pos, segIdx, acc int
+	pos, segIdx, acc            int
 	lastSurf, lastPOS, lastInfl string
 }
 
-// dfsBlobMatch は格子の複数分割候補を列挙する（arcsFromPosition は lattice.Build と同じ弧集合）。
-func dfsBlobMatch(d *dict.Dict, la *lattice.Lattice, rc, start int, targets []int) (endRune int, ok bool) {
+// dfsBlobMatch は複数分割候補を列挙する（arcsFromPosition は lattice.Build と同じ弧集合）。
+func dfsBlobMatch(d *dict.Dict, inp string, rc, start int, targets []int) (endRune int, ok bool) {
 	memo := make(map[dfsMemoKey]struct {
 		end int
 		ok  bool
@@ -136,7 +128,7 @@ func dfsBlobMatch(d *dict.Dict, la *lattice.Lattice, rc, start int, targets []in
 		var resultEnd int
 		var found bool
 
-		for _, arc := range arcsFromPosition(d, nil, la.Input, pos) {
+		for _, arc := range arcsFromPosition(d, nil, inp, pos) {
 			end, node := arc.end, arc.node
 			if end > rc {
 				continue

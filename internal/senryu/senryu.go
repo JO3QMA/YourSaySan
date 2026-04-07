@@ -9,10 +9,10 @@ import (
 	"github.com/JO3QMA/YourSaySan/pkg/utils"
 )
 
-// 改行なし経路B・文中検出: 短すぎる blob を除外し VoiceVox 呼び出しを抑制する下限ルーン数
+// 改行なし経路B・文中検出: 短すぎる blob を除外し、Kagome 解析の無駄な走査を減らす下限ルーン数
 const SenryuBlobMinRunes = 12
 
-// 改行なし経路B: 17モーラ相当の短文に絞り VoiceVox 呼び出しを抑制（VOICEVOX_MAX_MESSAGE_LENGTH=50 に近い上限）
+// 改行なし経路B: 17モーラ相当の短文に絞り、解析コストと誤検知リスクを抑える（VOICEVOX_MAX_MESSAGE_LENGTH=50 に近い上限）
 const unbrokenSenryuMaxRunes = 40
 
 // NormalizeLine は1行を川柳判定・読み上げ前処理と同種の置換を行う（改行は含まない想定）。
