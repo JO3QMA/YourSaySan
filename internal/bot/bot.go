@@ -282,6 +282,10 @@ func (w *eventsBotWrapper) GetState() events.StateInterface {
 	return w.bot.state
 }
 
+func (w *eventsBotWrapper) GetSession() *discordgo.Session {
+	return w.bot.session
+}
+
 func (w *eventsBotWrapper) GetVoiceVox() events.VoiceVoxAPI {
 	return w.bot.voicevox
 }
@@ -308,6 +312,10 @@ func (w *eventsBotWrapper) SetQueueSize(guildID string, size int) {
 
 func (w *eventsBotWrapper) RegisterCommandsToDiscord() error {
 	return w.bot.RegisterCommandsToDiscord()
+}
+
+func (w *eventsBotWrapper) RunWithSemaphore(fn func()) {
+	w.bot.runWithSemaphore(fn)
 }
 
 func (b *Bot) GetVoiceConnection(guildID string) (*voice.Connection, error) {

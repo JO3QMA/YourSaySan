@@ -49,5 +49,6 @@ type SpeakerManagerAPI interface {
 // VoiceVoxAPI はVoiceVoxクライアントのインターフェース
 type VoiceVoxAPI interface {
 	Speak(ctx context.Context, text string, speakerID int) ([]byte, error)
+	CountMorae(ctx context.Context, text string, speakerID int) (int, error)
 	GetSpeakers(ctx context.Context) ([]voicevox.Speaker, error)
 }
