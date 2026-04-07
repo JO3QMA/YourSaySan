@@ -29,10 +29,10 @@ type AudioQuery struct {
 
 // AccentPhrase はアクセント句情報
 type AccentPhrase struct {
-	Moras            []Mora `json:"moras"`
-	Accent           int    `json:"accent"`
-	PauseMora        *Mora  `json:"pauseMora,omitempty"`
-	IsInterrogative  bool   `json:"isInterrogative"`
+	Moras           []Mora `json:"moras"`
+	Accent          int    `json:"accent"`
+	PauseMora       *Mora  `json:"pauseMora,omitempty"`
+	IsInterrogative bool   `json:"isInterrogative"`
 }
 
 // Mora はモーラ情報
@@ -44,4 +44,3 @@ type Mora struct {
 	VowelLength     float64  `json:"vowel_length"`
 	Pitch           float64  `json:"pitch"`
 }
-

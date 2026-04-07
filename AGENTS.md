@@ -47,10 +47,9 @@
 │   │   └── encoder_opus.go      # Pion Opus エンコーダー（USE_PION_OPUS=true）
 │   ├── voicevox/                # VoiceVox API クライアント
 │   │   ├── client.go            # HTTP クライアント（リトライ・指数バックオフ付き）
-│   │   ├── morae.go             # audio_query からのモーラ数集計（川柳判定など）
+│   │   ├── morae.go             # audio_query からのモーラ数集計（デバッグ・将来用）
 │   │   └── types.go             # API レスポンス型定義
-│   ├── senryu/                  # 川柳（5-7-5）判定（VoiceVox モーラ数ベース）
-│   │   └── senryu.go
+│   ├── senryu/                  # 川柳（5-7-5）判定（Kagome 形態素・読みモーラ・品詞境界）
 │   ├── speaker/                 # 話者設定管理
 │   │   ├── manager.go           # Redis + LRU キャッシュによる話者設定管理
 │   │   └── interface.go         # SpeakerManager インターフェース
@@ -84,16 +83,16 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 
 `SENRYU_ENABLED=true` のときのみ有効。**デフォルトは `false`**（アップグレード時に自動で返信が増えないようにするため）。有効化すると **ギルド内の全テキストチャンネル**で、該当時は `SENRYU_REPLY_TEXT` で返信します（DM は `GuildID` が無いため対象外）。読み上げ対象チャンネルかどうかに依存しません。
 
-判定は次の **2経路**（先に経路Aを試し、対象外なら経路B）です。
+判定は次の **2経路**（先に経路Aを試し、対象外なら経路B）です。いずれも **Kagome IPA 辞書**（`SENRYU_ENABLED=true` のとき `Bot.Start` で1回ロード）により形態素解析し、読みからモーラ数を数え、品詞境界ルールで句切りの自然さを確認します（VoiceVox には依存しません）。
 
-- **経路A（3行）**: 空行を除いた非空行がちょうど3行のとき、各行のモーラ数が 5・7・5 か `CountMorae` を **最大3回**で確認。
-- **経路B（文中 blob）**: 経路Aに当てはまらないとき、Discord 向け置換後に Unicode 空白・改行を除去した1本の `blob` を作り、ルーン長が **12〜`SENRYU_MAX_BLOB_RUNES`（既定 100）** のときだけ `FindSenryuMatch` が `/audio_query` を **1回**呼ぶ。応答の言語モーラ列で **全文がちょうど17モーラ**、または **PauseMora（句読点相当）で区切られたセグメント内の先頭・連続17モーラ**（5+7+5）があれば該当とし、マッチ部分の表示文字列を返信に含める（`Mora.Text` の連結。入力表記と完全一致しない場合あり）。
+- **経路A（3行）**: 空行を除いた非空行がちょうど3行のとき、各行のモーラ数が 5・7・5 かつ句頭・句末が品詞ルール上自然かを確認する。
+- **経路B（文中 blob）**: 経路Aに当てはまらないとき、Discord 向け置換後に Unicode 空白・改行を除去した1本の `blob` を作り、ルーン長が **12〜`SENRYU_MAX_BLOB_RUNES`（既定 100）** のときだけ解析する。解析格子の複数分割候補を DFS（メモ付き）で探索し、5+7+5（計17モーラ）かつ境界ルールを満たす **最初の** 部分文字列をマッチとする（マッチは表層形の連結）。
 
 `SENRYU_REPLY_TEXT` は **ちょうど1つ**の `%s` があると `fmt.Sprintf` でマッチ箇所を埋め込み、それ以外は本文の後に `「…」` を付与する。経路Aでも返信に3行マッチが含まれる。
 
-経路Bは長い文でもセグメント先頭の17モーラに反応し得るため、`SENRYU_MAX_BLOB_RUNES` で解析長を抑えています。経路Aの `CountMorae` および経路Bの `FindSenryuMatch` はリトライ付きのため、チャンネル数の多いサーバーでは VoiceVox 負荷と共有レートリミッタ（下記）の競合に注意。
+経路Bは `SENRYU_MAX_BLOB_RUNES` で解析長を抑えています。川柳判定は `RunWithSemaphore` の外で同期実行され、VoiceVox のレートリミッタを消費しません。
 
-VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`CountMorae`、`FindSenryuMatch`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
+VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`GetSpeakers` が同じバケツを共有します。
 
 ### 音声再生パイプライン
 
@@ -260,7 +259,7 @@ VoiceVox Engine は `compose.devcontainer.yml` に含まれており、自動起
 - VC 接続マップは `sync.RWMutex` で保護する（読み取りは `RLock`、書き込みは `Lock`）
 - goroutine の上限は `goroutineSem`（セマフォ、上限 100）で管理する
 - goroutine の起動は `runWithSemaphore` 経由で行う
-- 補足: `RunWithSemaphore` はスロット取得まで**呼び出し元をブロック**する。川柳判定はこれに従うが、`message_create` の **TTS 本処理は discordgo が割り当てたイベント用 goroutine 上で同期実行**されており、セマフォの外（discordgo 側の同時ハンドラ数は Bot の 100 上限と独立）。川柳を有効にするとセマフォ消費が増え、スロット枯渇時は同一メッセージハンドラ内の **TTS 処理開始も遅延**し得る
+- 補足: `RunWithSemaphore` はスロット取得まで**呼び出し元をブロック**する。川柳判定はセマフォ外で実行する。`message_create` の **TTS 本処理は discordgo が割り当てたイベント用 goroutine 上で同期実行**されており、セマフォの外（discordgo 側の同時ハンドラ数は Bot の 100 上限と独立）
 
 ### Golang ライブラリ調査
 

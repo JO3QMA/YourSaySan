@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-	"unicode/utf8"
 
 	"golang.org/x/time/rate"
 )
@@ -75,7 +74,7 @@ func (c *Client) speakWithRetry(ctx context.Context, text string, speakerID int)
 	return audioData, err
 }
 
-// withVoiceVoxRetry は指数バックオフ・共有レート制限・4xx 即終了を Speak / CountMorae で共通化する。
+// withVoiceVoxRetry は指数バックオフ・共有レート制限・4xx 即終了を Speak で共通化する。
 func (c *Client) withVoiceVoxRetry(ctx context.Context, op func() error) error {
 	var lastErr error
 
@@ -109,48 +108,6 @@ func (c *Client) withVoiceVoxRetry(ctx context.Context, op func() error) error {
 	}
 
 	return fmt.Errorf("failed after %d attempts: %w", c.maxRetries, lastErr)
-}
-
-// CountMorae は1行テキストのモーラ数を VoiceVox の分解に基づいて返す（Speak と同じリトライ・レート制限）。
-func (c *Client) CountMorae(ctx context.Context, text string, speakerID int) (int, error) {
-	var n int
-	err := c.withVoiceVoxRetry(ctx, func() error {
-		q, err := c.fetchAudioQuery(ctx, text, speakerID)
-		if err != nil {
-			return err
-		}
-		n = MoraeCountInQuery(q)
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-	return n, nil
-}
-
-// FindSenryuMatch は正規化済み blob に対し audio_query を1回だけ行い、5+7+5（連続17モーラ）に該当する部分の表示用文字列を返す。
-// ルーン数が minRunes 未満または maxRunes を超えるときは API を呼ばず ("", false, nil)。
-func (c *Client) FindSenryuMatch(ctx context.Context, blob string, speakerID int, minRunes, maxRunes int) (match string, ok bool, err error) {
-	n := utf8.RuneCountInString(blob)
-	if n < minRunes || n > maxRunes {
-		return "", false, nil
-	}
-	err = c.withVoiceVoxRetry(ctx, func() error {
-		q, e := c.fetchAudioQuery(ctx, blob, speakerID)
-		if e != nil {
-			return e
-		}
-		var found bool
-		match, found = SenryuMatchFromQuery(q)
-		if !found {
-			match = ""
-		}
-		return nil
-	})
-	if err != nil {
-		return "", false, err
-	}
-	return match, match != "", nil
 }
 
 // fetchAudioQuery は /audio_query を1回呼び出して結果を返す（レート制限・リトライは呼び出し側）。

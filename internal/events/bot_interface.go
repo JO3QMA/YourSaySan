@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 
+	"github.com/JO3QMA/YourSaySan/internal/senryu"
 	"github.com/JO3QMA/YourSaySan/internal/voice"
 	"github.com/bwmarrin/discordgo"
 )
@@ -13,6 +14,7 @@ type BotInterface interface {
 	GetState() StateInterface
 	GetSession() *discordgo.Session
 	GetVoiceVox() VoiceVoxAPI
+	GetSenryuAnalyzer() *senryu.Analyzer
 	GetSpeakerManager() SpeakerManagerAPI
 	GetVoiceConnection(guildID string) (*voice.Connection, error)
 	RemoveVoiceConnection(guildID string)
@@ -44,6 +46,4 @@ type SpeakerManagerAPI interface {
 // VoiceVoxAPI はVoiceVoxクライアントのインターフェース
 type VoiceVoxAPI interface {
 	Speak(ctx context.Context, text string, speakerID int) ([]byte, error)
-	CountMorae(ctx context.Context, text string, speakerID int) (int, error)
-	FindSenryuMatch(ctx context.Context, blob string, speakerID int, minRunes, maxRunes int) (match string, ok bool, err error)
 }
