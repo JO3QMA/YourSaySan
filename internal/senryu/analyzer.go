@@ -97,8 +97,8 @@ func (a *Analyzer) tokenizeLine(line string) []morph {
 }
 
 type dfsMemoKey struct {
-	pos, segIdx, acc  int
-	lastSurf, lastPOS string
+	pos, segIdx, acc int
+	lastSurf, lastPOS, lastInfl string
 }
 
 // dfsBlobMatch は格子の複数分割候補を列挙する（arcsFromPosition は lattice.Build と同じ弧集合）。
@@ -113,12 +113,13 @@ func dfsBlobMatch(d *dict.Dict, la *lattice.Lattice, rc, start int, targets []in
 		if segIdx >= len(targets) {
 			return pos, true
 		}
-		lSurf, lPOS := "", ""
+		lSurf, lPOS, lInfl := "", "", ""
 		if lastSegEnd != nil {
 			lSurf = lastSegEnd.surface
 			lPOS = lastSegEnd.posMajor
+			lInfl = lastSegEnd.inflectionalForm
 		}
-		mk := dfsMemoKey{pos: pos, segIdx: segIdx, acc: acc, lastSurf: lSurf, lastPOS: lPOS}
+		mk := dfsMemoKey{pos: pos, segIdx: segIdx, acc: acc, lastSurf: lSurf, lastPOS: lPOS, lastInfl: lInfl}
 		if v, ok := memo[mk]; ok {
 			return v.end, v.ok
 		}
