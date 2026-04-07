@@ -10,9 +10,6 @@ func MoraeCountInQuery(q *AudioQuery) int {
 	for i := range q.AccentPhrases {
 		ap := &q.AccentPhrases[i]
 		n += len(ap.Moras)
-		if ap.PauseMora != nil {
-			n++
-		}
 	}
 	return n
 }
