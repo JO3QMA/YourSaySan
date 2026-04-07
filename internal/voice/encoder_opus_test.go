@@ -74,7 +74,22 @@ func TestOpusEncoder_Encode_Mono(t *testing.T) {
 	require.NoError(t, err)
 	frames, err := enc.Encode(context.Background(), wavData)
 	require.NoError(t, err)
-	require.NotEmpty(t, frames, "expected at least one Opus frame")
+	require.Len(t, frames, 1)
+}
+
+func TestOpusEncoder_Encode_Mono_Padding(t *testing.T) {
+	// 30ms @ 48kHz mono = 1440 サンプル → アップミックス後 2880 / 1920 = 1.5 → 2 Opus フレーム
+	samples := make([]int16, 1440)
+	for i := range samples {
+		samples[i] = int16(i % 3000)
+	}
+	wavData := createMonoWavFile(t, samples)
+
+	enc, err := NewOpusEncoder()
+	require.NoError(t, err)
+	frames, err := enc.Encode(context.Background(), wavData)
+	require.NoError(t, err)
+	require.Len(t, frames, 2)
 }
 
 func TestOpusEncoder_Encode_Stereo(t *testing.T) {
@@ -91,5 +106,5 @@ func TestOpusEncoder_Encode_Stereo(t *testing.T) {
 	require.NoError(t, err)
 	frames, err := enc.Encode(context.Background(), wavData)
 	require.NoError(t, err)
-	require.NotEmpty(t, frames, "expected at least one Opus frame")
+	require.Len(t, frames, 1)
 }
