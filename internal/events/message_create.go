@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JO3QMA/YourSaySan/internal/senryu"
 	"github.com/JO3QMA/YourSaySan/pkg/utils"
@@ -31,28 +32,18 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		cfg := b.GetConfig()
 
 		// 川柳（5-7-5）: ギルド内の全チャンネルが対象（DM は GuildID なしのため除外）
-		// 経路A: ちょうど3行 / 経路B: 改行なしで空白除去後の1文が17モーラ
+		// 経路A: ちょうど3行 / 経路B: 正規化 blob に対し audio_query 1回で全文17モーラまたは文中の連続17モーラを検出
 		if cfg.GetSenryuEnabled() && m.GuildID != "" {
-			var senryuThreeLines []string
-			var senryuBlob string
-			senryuMode := 0 // 0=なし, 1=三行, 2=連続
+			channelID := m.ChannelID
+			messageID := m.ID
+			guildID := m.GuildID
+			authorID := m.Author.ID
+			replyTemplate := cfg.GetSenryuReplyText()
+			session := b.GetSession()
+			maxBlobRunes := cfg.GetSenryuMaxBlobRunes()
+
 			if lines, ok := senryu.ThreeLines(m.Content); ok {
-				senryuMode = 1
-				senryuThreeLines = lines
-			} else if blob, ok := senryu.IsUnbrokenSenryuCandidate(m.Content); ok {
-				senryuMode = 2
-				senryuBlob = blob
-			}
-			if senryuMode != 0 {
-				channelID := m.ChannelID
-				messageID := m.ID
-				guildID := m.GuildID
-				authorID := m.Author.ID
-				replyText := cfg.GetSenryuReplyText()
-				session := b.GetSession()
-				mode := senryuMode
-				linesCopy := senryuThreeLines
-				blobCopy := senryuBlob
+				linesCopy := lines
 				b.RunWithSemaphore(func() {
 					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 					defer cancel()
@@ -63,13 +54,7 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 						speakerID = 2
 					}
 
-					vv := b.GetVoiceVox()
-					var is575 bool
-					if mode == 1 {
-						is575, err = senryu.Is575Morae(ctx, vv, linesCopy, speakerID)
-					} else {
-						is575, err = senryu.Is575MoraeUnbroken(ctx, vv, blobCopy, speakerID)
-					}
+					is575, err := senryu.Is575Morae(ctx, b.GetVoiceVox(), linesCopy, speakerID)
 					if err != nil {
 						logrus.WithError(err).WithFields(logrus.Fields{
 							"guild_id":   guildID,
@@ -81,20 +66,41 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 					if !is575 {
 						return
 					}
-
-					ref := &discordgo.MessageReference{
-						MessageID: messageID,
-						ChannelID: channelID,
-						GuildID:   guildID,
-					}
-					if _, err := session.ChannelMessageSendReply(channelID, replyText, ref); err != nil {
-						logrus.WithError(err).WithFields(logrus.Fields{
-							"guild_id":   guildID,
-							"channel_id": channelID,
-							"message_id": messageID,
-						}).Warn("Failed to send senryu reply")
-					}
+					match := strings.Join(linesCopy, "\n")
+					reply := senryu.FormatSenryuReply(replyTemplate, match)
+					sendSenryuReply(session, channelID, messageID, guildID, reply)
 				})
+			} else {
+				blob := senryu.NormalizeSenryuBlob(m.Content)
+				n := utf8.RuneCountInString(blob)
+				if n >= senryu.SenryuBlobMinRunes && n <= maxBlobRunes {
+					blobCopy := blob
+					b.RunWithSemaphore(func() {
+						ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+						defer cancel()
+
+						speakerID, err := b.GetSpeakerManager().GetSpeaker(ctx, authorID)
+						if err != nil {
+							logrus.WithError(err).WithField("user_id", authorID).Warn("Failed to get speaker for senryu check")
+							speakerID = 2
+						}
+
+						match, found, err := b.GetVoiceVox().FindSenryuMatch(ctx, blobCopy, speakerID, senryu.SenryuBlobMinRunes, maxBlobRunes)
+						if err != nil {
+							logrus.WithError(err).WithFields(logrus.Fields{
+								"guild_id":   guildID,
+								"channel_id": channelID,
+								"message_id": messageID,
+							}).Warn("Senryu mora check failed")
+							return
+						}
+						if !found {
+							return
+						}
+						reply := senryu.FormatSenryuReply(replyTemplate, match)
+						sendSenryuReply(session, channelID, messageID, guildID, reply)
+					})
+				}
 			}
 		}
 
@@ -196,5 +202,20 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 
 		// キューサイズを更新
 		b.SetQueueSize(m.GuildID, queueSize)
+	}
+}
+
+func sendSenryuReply(s *discordgo.Session, channelID, messageID, guildID, reply string) {
+	ref := &discordgo.MessageReference{
+		MessageID: messageID,
+		ChannelID: channelID,
+		GuildID:   guildID,
+	}
+	if _, err := s.ChannelMessageSendReply(channelID, reply, ref); err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"guild_id":   guildID,
+			"channel_id": channelID,
+			"message_id": messageID,
+		}).Warn("Failed to send senryu reply")
 	}
 }

@@ -195,3 +195,30 @@ func TestIs575MoraeUnbroken(t *testing.T) {
 		t.Fatalf("empty blob: err=%v ok=%v", err, ok)
 	}
 }
+
+func TestFormatSenryuReply_withPercentS(t *testing.T) {
+	t.Parallel()
+	got := FormatSenryuReply("前: %s 後", "みどり")
+	want := "前: みどり 後"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatSenryuReply_fallbackQuote(t *testing.T) {
+	t.Parallel()
+	got := FormatSenryuReply("固定のみ", "あいう")
+	want := "固定のみ\n「あいう」"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatSenryuReply_twoPlaceholdersUsesFallback(t *testing.T) {
+	t.Parallel()
+	got := FormatSenryuReply("%s と %s", "あ")
+	want := "%s と %s\n「あ」"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}

@@ -2,6 +2,7 @@ package senryu
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -9,11 +10,11 @@ import (
 	"github.com/JO3QMA/YourSaySan/pkg/utils"
 )
 
+// 改行なし経路B・文中検出: 短すぎる blob を除外し VoiceVox 呼び出しを抑制する下限ルーン数
+const SenryuBlobMinRunes = 12
+
 // 改行なし経路B: 17モーラ相当の短文に絞り VoiceVox 呼び出しを抑制（VOICEVOX_MAX_MESSAGE_LENGTH=50 に近い上限）
-const (
-	unbrokenSenryuMinRunes = 12
-	unbrokenSenryuMaxRunes = 40
-)
+const unbrokenSenryuMaxRunes = 40
 
 // MoraeCounter は VoiceVox 等による1行あたりのモーラ数取得に使う。
 type MoraeCounter interface {
@@ -92,7 +93,7 @@ func IsUnbrokenSenryuCandidate(content string) (blob string, ok bool) {
 		return "", false
 	}
 	n := utf8.RuneCountInString(blob)
-	if n < unbrokenSenryuMinRunes || n > unbrokenSenryuMaxRunes {
+	if n < SenryuBlobMinRunes || n > unbrokenSenryuMaxRunes {
 		return "", false
 	}
 	return blob, true
@@ -108,4 +109,12 @@ func Is575MoraeUnbroken(ctx context.Context, c MoraeCounter, blob string, speake
 		return false, err
 	}
 	return n == 5+7+5, nil
+}
+
+// FormatSenryuReply は SENRYU_REPLY_TEXT にマッチ箇所を埋め込む。テンプレートに %s がちょうど1つあるときは fmt.Sprintf、それ以外は末尾に「…」を付与する。
+func FormatSenryuReply(template, match string) string {
+	if strings.Count(template, "%s") == 1 {
+		return fmt.Sprintf(template, match)
+	}
+	return template + "\n「" + match + "」"
 }

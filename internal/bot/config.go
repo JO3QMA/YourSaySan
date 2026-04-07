@@ -30,8 +30,9 @@ type Config struct {
 	} `yaml:"redis" mapstructure:"redis"`
 
 	Senryu struct {
-		Enabled   bool   `yaml:"enabled" mapstructure:"enabled"`
-		ReplyText string `yaml:"reply_text" mapstructure:"reply_text"`
+		Enabled      bool   `yaml:"enabled" mapstructure:"enabled"`
+		ReplyText    string `yaml:"reply_text" mapstructure:"reply_text"`
+		MaxBlobRunes int    `yaml:"max_blob_runes" mapstructure:"max_blob_runes"`
 	} `yaml:"senryu" mapstructure:"senryu"`
 }
 
@@ -65,6 +66,11 @@ func (c *Config) GetSenryuReplyText() string {
 	return c.Senryu.ReplyText
 }
 
+// GetSenryuMaxBlobRunes は文中川柳検出に使う正規化 blob の最大ルーン数を返す
+func (c *Config) GetSenryuMaxBlobRunes() int {
+	return c.Senryu.MaxBlobRunes
+}
+
 func LoadConfig() (*Config, error) {
 	// 1. .envファイル読み込み（無くても環境変数から続行）
 	_ = godotenv.Load()
@@ -94,7 +100,8 @@ func LoadConfig() (*Config, error) {
 
 	// 川柳（5-7-5）判定（既存デプロイへの影響を避けるため既定はオフ。利用時は SENRYU_ENABLED=true）
 	config.Senryu.Enabled = getEnvBoolWithDefault("SENRYU_ENABLED", false)
-	config.Senryu.ReplyText = getEnvWithDefault("SENRYU_REPLY_TEXT", "5-7-5の川柳に見えます！")
+	config.Senryu.ReplyText = getEnvWithDefault("SENRYU_REPLY_TEXT", "5-7-5の川柳に見えます: %s")
+	config.Senryu.MaxBlobRunes = getEnvIntWithDefault("SENRYU_MAX_BLOB_RUNES", 100)
 
 	// 3. 設定バリデーション
 	if err := validateConfig(&config); err != nil {
@@ -155,6 +162,9 @@ func validateConfig(config *Config) error {
 	}
 	if config.Redis.Port == 0 {
 		config.Redis.Port = 6379 // デフォルト値
+	}
+	if config.Senryu.MaxBlobRunes <= 0 {
+		config.Senryu.MaxBlobRunes = 100
 	}
 	return nil
 }
