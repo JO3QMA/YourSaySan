@@ -87,11 +87,13 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 判定は次の **2経路**（先に経路Aを試し、対象外なら経路B）です。
 
 - **経路A（3行）**: 空行を除いた非空行がちょうど3行のとき、各行のモーラ数が 5・7・5 か `CountMorae` を **最大3回**で確認。
-- **経路B（改行なし1文）**: 本文に `\n`/`\r` が **含まれない**ときのみ、Discord 向け置換後に Unicode 空白を除去した1本の文字列 `blob` を作り、ルーン長が **12〜40** のときだけ `CountMorae` を **1回**呼び、合計が **17 モーラ**なら 5-7-5 とみなす（`ふるいけやかわずとびこむみずのおと` のように改行・空白なしでも可。スペース区切り1行も `blob` 連結後に同様）。
+- **経路B（文中 blob）**: 経路Aに当てはまらないとき、Discord 向け置換後に Unicode 空白・改行を除去した1本の `blob` を作り、ルーン長が **12〜`SENRYU_MAX_BLOB_RUNES`（既定 100）** のときだけ `FindSenryuMatch` が `/audio_query` を **1回**呼ぶ。応答の言語モーラ列で **全文がちょうど17モーラ**、または **PauseMora（句読点相当）で区切られたセグメント内の先頭・連続17モーラ**（5+7+5）があれば該当とし、マッチ部分の表示文字列を返信に含める（`Mora.Text` の連結。入力表記と完全一致しない場合あり）。
 
-経路Bは「合計17モーラ」の任意の一文にも反応し得るため、長さゲートで呼び出し頻度を抑えています。いずれの経路も `CountMorae` はリトライ付きのため、チャンネル数の多いサーバーでは VoiceVox 負荷と共有レートリミッタ（下記）の競合に注意。
+`SENRYU_REPLY_TEXT` は **ちょうど1つ**の `%s` があると `fmt.Sprintf` でマッチ箇所を埋め込み、それ以外は本文の後に `「…」` を付与する。経路Aでも返信に3行マッチが含まれる。
 
-VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`CountMorae`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
+経路Bは長い文でもセグメント先頭の17モーラに反応し得るため、`SENRYU_MAX_BLOB_RUNES` で解析長を抑えています。経路Aの `CountMorae` および経路Bの `FindSenryuMatch` はリトライ付きのため、チャンネル数の多いサーバーでは VoiceVox 負荷と共有レートリミッタ（下記）の競合に注意。
+
+VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`CountMorae`、`FindSenryuMatch`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
 
 ### 音声再生パイプライン
 
@@ -169,8 +171,9 @@ type Config struct {
 		DB   int    // REDIS_DB
 	}
 	Senryu struct {
-		Enabled   bool   // SENRYU_ENABLED
-		ReplyText string // SENRYU_REPLY_TEXT
+		Enabled      bool   // SENRYU_ENABLED
+		ReplyText    string // SENRYU_REPLY_TEXT
+		MaxBlobRunes int    // SENRYU_MAX_BLOB_RUNES
 	}
 }
 ```
@@ -189,7 +192,8 @@ type Config struct {
 - `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
 - `REDIS_DB` — Redis DB番号（デフォルト: `0`）
 - `SENRYU_ENABLED` — 川柳（5-7-5）判定と返信を有効にするか（デフォルト: `false`。利用する場合は `true` を明示）
-- `SENRYU_REPLY_TEXT` — 川柳と判定したときの返信本文（デフォルト: `5-7-5の川柳に見えます！`）
+- `SENRYU_REPLY_TEXT` — 川柳と判定したときの返信テンプレート（デフォルト: `5-7-5の川柳に見えます: %s`。`%s` がちょうど1つでマッチ箇所を埋め込み）
+- `SENRYU_MAX_BLOB_RUNES` — 経路Bの `blob` 最大ルーン数（デフォルト: `100`）
 - `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
 - `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
 - `LOG_FORMAT` — ログ形式（`text`/`json`、デフォルト: `text`）

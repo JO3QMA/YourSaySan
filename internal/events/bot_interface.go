@@ -28,6 +28,7 @@ type ConfigInterface interface {
 	GetBotStatus() string
 	GetSenryuEnabled() bool
 	GetSenryuReplyText() string
+	GetSenryuMaxBlobRunes() int
 }
 
 // StateInterface は状態のインターフェース
@@ -44,4 +45,5 @@ type SpeakerManagerAPI interface {
 type VoiceVoxAPI interface {
 	Speak(ctx context.Context, text string, speakerID int) ([]byte, error)
 	CountMorae(ctx context.Context, text string, speakerID int) (int, error)
+	FindSenryuMatch(ctx context.Context, blob string, speakerID int, minRunes, maxRunes int) (match string, ok bool, err error)
 }

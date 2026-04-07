@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -239,4 +240,62 @@ func TestClient_Speak_SetsOutputSamplingRateTo48kHz(t *testing.T) {
 
 	// クライアントが48kHzに書き換えていることを確認
 	assert.Equal(t, 48000, receivedQuery.OutputSamplingRate)
+}
+
+func TestClient_FindSenryuMatch_RuneGate(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	client := newTestClient(srv.URL)
+	ctx := context.Background()
+
+	_, ok, err := client.FindSenryuMatch(ctx, "short", 1, 12, 100)
+	require.NoError(t, err)
+	assert.False(t, ok)
+	assert.Equal(t, int32(0), calls.Load())
+
+	long := strings.Repeat("あ", 200)
+	_, ok2, err2 := client.FindSenryuMatch(ctx, long, 1, 12, 100)
+	require.NoError(t, err2)
+	assert.False(t, ok2)
+	assert.Equal(t, int32(0), calls.Load())
+}
+
+func TestClient_FindSenryuMatch_UsesAudioQuery(t *testing.T) {
+	moras := make([]map[string]any, 18)
+	wantPrefix := ""
+	for i := 0; i < 18; i++ {
+		ch := string(rune('A' + i))
+		moras[i] = map[string]any{"text": ch, "vowel": "a", "vowel_length": 0.1, "pitch": 0}
+		if i < 17 {
+			wantPrefix += ch
+		}
+	}
+	raw, err := json.Marshal(map[string]any{
+		"accent_phrases": []map[string]any{{
+			"moras": moras, "accent": 1, "isInterrogative": false,
+		}},
+		"speedScale": 1, "pitchScale": 0, "intonationScale": 1, "volumeScale": 1,
+		"prePhonemeLength": 0.1, "postPhonemeLength": 0.1,
+		"outputSamplingRate": 24000, "outputStereo": false,
+	})
+	require.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/audio_query" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(raw)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	client := newTestClient(srv.URL)
+	match, ok, err := client.FindSenryuMatch(context.Background(), strings.Repeat("あ", 12), 2, 12, 100)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, wantPrefix, match)
 }
