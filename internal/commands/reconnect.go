@@ -48,7 +48,9 @@ func ReconnectHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interac
 		logrus.WithFields(logrus.Fields{
 			"guild_id": guildID,
 		}).Debug("Disconnecting existing voice connection")
-		existingConn.Leave()
+		if leaveErr := existingConn.Leave(); leaveErr != nil {
+			logrus.WithError(leaveErr).WithField("guild_id", guildID).Warn("failed to leave existing voice connection")
+		}
 		b.RemoveVoiceConnection(guildID)
 	}
 

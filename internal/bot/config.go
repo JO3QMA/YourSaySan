@@ -51,10 +51,8 @@ func (c *Config) GetVoiceVoxMaxMessageLength() int {
 }
 
 func LoadConfig() (*Config, error) {
-	// 1. .envファイル読み込み
-	if err := godotenv.Load(); err != nil {
-		// .envファイルがなくても続行（環境変数から直接読み込む）
-	}
+	// 1. .envファイル読み込み（無くても環境変数から続行）
+	_ = godotenv.Load()
 
 	// 2. 環境変数から直接設定を読み込み
 	var config Config

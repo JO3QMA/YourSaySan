@@ -41,7 +41,7 @@ func TestClient_GetSpeakers_Success(t *testing.T) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/speakers", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(speakers)
+		require.NoError(t, json.NewEncoder(w).Encode(speakers))
 	}))
 	defer srv.Close()
 
@@ -71,7 +71,8 @@ func TestClient_GetSpeakers_ServerError(t *testing.T) {
 func TestClient_GetSpeakers_InvalidJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("not valid json"))
+		_, err := w.Write([]byte("not valid json"))
+		require.NoError(t, err)
 	}))
 	defer srv.Close()
 
@@ -97,7 +98,7 @@ func TestClient_Speak_Success(t *testing.T) {
 			assert.Equal(t, "1", r.URL.Query().Get("speaker"))
 			assert.NotEmpty(t, r.URL.Query().Get("text"))
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(audioQueryResponse)
+			require.NoError(t, json.NewEncoder(w).Encode(audioQueryResponse))
 
 		case r.Method == "POST" && r.URL.Path == "/synthesis":
 			assert.Equal(t, "1", r.URL.Query().Get("speaker"))
@@ -108,7 +109,8 @@ func TestClient_Speak_Success(t *testing.T) {
 			// サンプリングレートが48kHzに設定されていることを確認
 			assert.Equal(t, 48000, q.OutputSamplingRate)
 			w.WriteHeader(http.StatusOK)
-			w.Write(expectedAudio)
+			_, werr := w.Write(expectedAudio)
+			require.NoError(t, werr)
 
 		default:
 			http.Error(w, "unexpected path: "+r.URL.Path, http.StatusNotFound)
@@ -178,12 +180,13 @@ func TestClient_Speak_RetrySucceedsOnSecondAttempt(t *testing.T) {
 			}
 			// 2回目は成功
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(audioQueryResponse)
+			require.NoError(t, json.NewEncoder(w).Encode(audioQueryResponse))
 			return
 		}
 
 		if r.URL.Path == "/synthesis" {
-			w.Write(expectedAudio)
+			_, werr := w.Write(expectedAudio)
+			require.NoError(t, werr)
 		}
 	}))
 	defer srv.Close()
@@ -220,11 +223,12 @@ func TestClient_Speak_SetsOutputSamplingRateTo48kHz(t *testing.T) {
 			// 元のサンプリングレートは24kHz
 			resp := AudioQuery{OutputSamplingRate: 24000}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			require.NoError(t, json.NewEncoder(w).Encode(resp))
 		case "/synthesis":
 			// synthesisに送られたQueryを確認
-			json.NewDecoder(r.Body).Decode(&receivedQuery)
-			w.Write([]byte("audio"))
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&receivedQuery))
+			_, werr := w.Write([]byte("audio"))
+			require.NoError(t, werr)
 		}
 	}))
 	defer srv.Close()

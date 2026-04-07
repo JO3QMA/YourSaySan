@@ -41,7 +41,9 @@ func (b *Bot) startHTTPServer() {
 
 func (b *Bot) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		logrus.WithError(err).Warn("failed to write health response body")
+	}
 }
 
 func (b *Bot) readinessCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +69,9 @@ func (b *Bot) readinessCheckHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	json.NewEncoder(w).Encode(checks)
+	if err := json.NewEncoder(w).Encode(checks); err != nil {
+		logrus.WithError(err).Warn("failed to write readiness response body")
+	}
 }
 
 func (b *Bot) checkDiscordHealth() bool {
@@ -92,5 +96,5 @@ func (b *Bot) checkRedisHealth(ctx context.Context) bool {
 func (b *Bot) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	// 将来の実装: Prometheusメトリクスを返す
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "# Metrics endpoint (not yet implemented)\n")
+	_, _ = fmt.Fprintf(w, "# Metrics endpoint (not yet implemented)\n")
 }

@@ -24,10 +24,8 @@ func ByeHandler(b BotInterface, s *discordgo.Session, i *discordgo.InteractionCr
 		})
 	}
 
-	// 再生を停止
-	if err := conn.Stop(); err != nil {
-		// エラーを無視して続行
-	}
+	// 再生を停止（失敗しても切断は試みる）
+	_ = conn.Stop()
 
 	// VCから切断
 	if err := conn.Leave(); err != nil {

@@ -31,7 +31,6 @@ type Bot struct {
 	connMu     sync.RWMutex
 
 	// 並行処理制御
-	mu sync.RWMutex
 	wg sync.WaitGroup
 
 	// コンテキスト
@@ -392,8 +391,8 @@ func (b *Bot) SetQueueSize(guildID string, size int) {
 	// メトリクス記録（将来の実装）
 }
 
-// goroutineSemの使用例
-func (b *Bot) runWithSemaphore(fn func()) {
+// goroutineSemの使用例（規約上の起動経路; 呼び出しは順次移行予定）
+func (b *Bot) runWithSemaphore(fn func()) { //nolint:unused // セマフォ付き起動の参照実装として保持
 	// セマフォを取得（ブロック可能）
 	b.goroutineSem <- struct{}{}
 	defer func() { <-b.goroutineSem }() // 解放
@@ -405,7 +404,7 @@ func (b *Bot) runWithSemaphore(fn func()) {
 	})
 }
 
-func (b *Bot) safeGoroutine(fn func()) {
+func (b *Bot) safeGoroutine(fn func()) { //nolint:unused // runWithSemaphore 経由で利用予定
 	defer func() {
 		if r := recover(); r != nil {
 			logrus.WithFields(logrus.Fields{
