@@ -31,14 +31,28 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		cfg := b.GetConfig()
 
 		// 川柳（5-7-5）: ギルド内の全チャンネルが対象（DM は GuildID なしのため除外）
+		// 経路A: ちょうど3行 / 経路B: 改行なしで空白除去後の1文が17モーラ
 		if cfg.GetSenryuEnabled() && m.GuildID != "" {
+			var senryuThreeLines []string
+			var senryuBlob string
+			senryuMode := 0 // 0=なし, 1=三行, 2=連続
 			if lines, ok := senryu.ThreeLines(m.Content); ok {
+				senryuMode = 1
+				senryuThreeLines = lines
+			} else if blob, ok := senryu.IsUnbrokenSenryuCandidate(m.Content); ok {
+				senryuMode = 2
+				senryuBlob = blob
+			}
+			if senryuMode != 0 {
 				channelID := m.ChannelID
 				messageID := m.ID
 				guildID := m.GuildID
 				authorID := m.Author.ID
 				replyText := cfg.GetSenryuReplyText()
 				session := b.GetSession()
+				mode := senryuMode
+				linesCopy := senryuThreeLines
+				blobCopy := senryuBlob
 				b.RunWithSemaphore(func() {
 					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 					defer cancel()
@@ -49,7 +63,13 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 						speakerID = 2
 					}
 
-					is575, err := senryu.Is575Morae(ctx, b.GetVoiceVox(), lines, speakerID)
+					vv := b.GetVoiceVox()
+					var is575 bool
+					if mode == 1 {
+						is575, err = senryu.Is575Morae(ctx, vv, linesCopy, speakerID)
+					} else {
+						is575, err = senryu.Is575MoraeUnbroken(ctx, vv, blobCopy, speakerID)
+					}
 					if err != nil {
 						logrus.WithError(err).WithFields(logrus.Fields{
 							"guild_id":   guildID,

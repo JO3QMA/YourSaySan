@@ -3,8 +3,16 @@ package senryu
 import (
 	"context"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/JO3QMA/YourSaySan/pkg/utils"
+)
+
+// 改行なし経路B: 17モーラ相当の短文に絞り VoiceVox 呼び出しを抑制（VOICEVOX_MAX_MESSAGE_LENGTH=50 に近い上限）
+const (
+	unbrokenSenryuMinRunes = 12
+	unbrokenSenryuMaxRunes = 40
 )
 
 // MoraeCounter は VoiceVox 等による1行あたりのモーラ数取得に使う。
@@ -60,4 +68,44 @@ func Is575Morae(ctx context.Context, c MoraeCounter, lines []string, speakerID i
 		}
 	}
 	return true, nil
+}
+
+// NormalizeSenryuBlob は Discord 向け置換のあと、Unicode 空白をすべて除去した1本の文字列を返す。
+func NormalizeSenryuBlob(content string) string {
+	s := utils.ApplyDiscordTextReplacements(content)
+	var b strings.Builder
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// IsUnbrokenSenryuCandidate は本文に改行がなく、正規化後の blob が川柳（連続17モーラ）候補として妥当な長さのとき (blob, true)。
+func IsUnbrokenSenryuCandidate(content string) (blob string, ok bool) {
+	if strings.ContainsAny(content, "\n\r") {
+		return "", false
+	}
+	blob = NormalizeSenryuBlob(content)
+	if blob == "" {
+		return "", false
+	}
+	n := utf8.RuneCountInString(blob)
+	if n < unbrokenSenryuMinRunes || n > unbrokenSenryuMaxRunes {
+		return "", false
+	}
+	return blob, true
+}
+
+// Is575MoraeUnbroken は連続1文の合計モーラ数がちょうど17かどうかを返す（改行なし経路B）。
+func Is575MoraeUnbroken(ctx context.Context, c MoraeCounter, blob string, speakerID int) (bool, error) {
+	if blob == "" {
+		return false, nil
+	}
+	n, err := c.CountMorae(ctx, blob, speakerID)
+	if err != nil {
+		return false, err
+	}
+	return n == 5+7+5, nil
 }
