@@ -93,8 +93,8 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 		}
 
 		nRead, err := dec.PCMBuffer(buf)
-		if err == io.EOF {
-			break
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("failed to read PCM: %w", err)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read PCM: %w", err)
