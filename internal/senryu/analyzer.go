@@ -101,8 +101,7 @@ type dfsMemoKey struct {
 	lastSurf, lastPOS string
 }
 
-// dfsBlobMatch は格子の複数分割候補を列挙するため lattice.ArcsFrom を使う。
-// go mod vendor 実行後は vendor 内の同メソッドを再適用すること（手動パッチ）。
+// dfsBlobMatch は格子の複数分割候補を列挙する（arcsFromPosition は lattice.Build と同じ弧集合）。
 func dfsBlobMatch(d *dict.Dict, la *lattice.Lattice, rc, start int, targets []int) (endRune int, ok bool) {
 	memo := make(map[dfsMemoKey]struct {
 		end int
@@ -136,52 +135,52 @@ func dfsBlobMatch(d *dict.Dict, la *lattice.Lattice, rc, start int, targets []in
 		var resultEnd int
 		var found bool
 
-		la.ArcsFrom(pos, func(end int, node *lattice.Node) bool {
+		for _, arc := range arcsFromPosition(d, nil, la.Input, pos) {
+			end, node := arc.end, arc.node
 			if end > rc {
-				return true
+				continue
 			}
 			m := morphFromNode(d, node)
 			mm := m.morae()
 			if mm == 0 || acc+mm > need {
-				return true
+				continue
 			}
 
 			if acc == 0 {
 				if !phraseStartOK(m) {
-					return true
+					continue
 				}
 				if segIdx > 0 && lastSegEnd != nil && !breakBetween(*lastSegEnd, m) {
-					return true
+					continue
 				}
 			}
 
 			if acc+mm == need {
 				if !phraseEndOK(m) {
-					return true
+					continue
 				}
 				mc := m
 				if segIdx == len(targets)-1 {
 					resultEnd = end
 					found = true
-					return false
+					break
 				}
 				e, subOK := dfs(end, segIdx+1, 0, &mc)
 				if subOK {
 					resultEnd = e
 					found = true
-					return false
+					break
 				}
-				return true
+				continue
 			}
 
 			e, subOK := dfs(end, segIdx, acc+mm, lastSegEnd)
 			if subOK {
 				resultEnd = e
 				found = true
-				return false
+				break
 			}
-			return true
-		})
+		}
 
 		if found {
 			return save(resultEnd, true)
