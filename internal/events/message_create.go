@@ -33,15 +33,13 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 			return
 		}
 
-		// 読み上げ対象チャンネルのメッセージをログに記録
-		// Debugレベルではメッセージ内容も記録
+		// 読み上げ対象チャンネルのメッセージをログに記録（本文はプライバシー保護のため記録しない）
 		logrus.WithFields(logrus.Fields{
 			"guild_id":    m.GuildID,
 			"channel_id":  m.ChannelID,
 			"user_id":     m.Author.ID,
 			"message_id":  m.ID,
 			"content_len": len(m.Content),
-			"content":     m.Content, // Debugレベルでメッセージ内容を記録
 		}).Debug("Message received for text-to-speech")
 
 		// 5. VC接続を確認
@@ -67,11 +65,10 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		}
 
 		logrus.WithFields(logrus.Fields{
-			"guild_id":         m.GuildID,
-			"user_id":          m.Author.ID,
-			"original_len":     len(m.Content),
-			"transformed_len":  len(transformedText),
-			"transformed_text": transformedText, // Debugレベルで変換後のテキストも記録
+			"guild_id":        m.GuildID,
+			"user_id":         m.Author.ID,
+			"original_len":    len(m.Content),
+			"transformed_len": len(transformedText),
 		}).Debug("Message transformed for TTS")
 
 		// 7. 話者設定取得

@@ -116,7 +116,7 @@ func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]b
 	if err != nil {
 		return nil, fmt.Errorf("failed to request audio_query: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -151,7 +151,7 @@ func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]b
 	if err != nil {
 		return nil, fmt.Errorf("failed to request synthesis: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -185,7 +185,7 @@ func (c *Client) GetSpeakers(ctx context.Context) ([]Speaker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to request speakers: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

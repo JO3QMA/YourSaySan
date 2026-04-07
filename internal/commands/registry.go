@@ -92,13 +92,15 @@ func (r *Registry) HandleInteraction(s *discordgo.Session, i *discordgo.Interact
 			"guild_id": i.GuildID,
 			"user_id":  userID,
 		}).Error("Command handler error")
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		if respErr := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("エラーが発生しました: %v", err),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			},
-		})
+		}); respErr != nil {
+			logrus.WithError(respErr).Error("failed to send interaction error response")
+		}
 	} else {
 		logrus.WithFields(logrus.Fields{
 			"command":  commandName,

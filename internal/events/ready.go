@@ -15,7 +15,9 @@ func ReadyHandler(b BotInterface) func(s *discordgo.Session, event *discordgo.Re
 
 		config := b.GetConfig()
 		// Botステータス設定
-		s.UpdateGameStatus(0, config.GetBotStatus())
+		if err := s.UpdateGameStatus(0, config.GetBotStatus()); err != nil {
+			logrus.WithError(err).Warn("failed to update bot game status")
+		}
 		logrus.WithField("status", config.GetBotStatus()).Debug("Bot status updated")
 
 		// Discordにコマンドを登録（Readyイベント後なのでs.State.Userが利用可能）

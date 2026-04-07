@@ -41,10 +41,10 @@ func (e *DCAEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, erro
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := tmpFile.Write(wavData); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return nil, fmt.Errorf("failed to write temp file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {

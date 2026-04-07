@@ -31,7 +31,6 @@ type Bot struct {
 	connMu     sync.RWMutex
 
 	// 並行処理制御
-	mu sync.RWMutex
 	wg sync.WaitGroup
 
 	// コンテキスト
@@ -142,7 +141,7 @@ func (b *Bot) Start() error {
 
 	// 8. HTTPサーバー起動（ヘルスチェック/メトリクス）
 	logrus.Debug("Starting HTTP server")
-	go b.startHTTPServer()
+	b.runWithSemaphore(func() { b.startHTTPServer() })
 	logrus.Debug("HTTP server started")
 
 	// 9. Bot Ready（Discord接続開始）
@@ -392,14 +391,14 @@ func (b *Bot) SetQueueSize(guildID string, size int) {
 	// メトリクス記録（将来の実装）
 }
 
-// goroutineSemの使用例
+// goroutineSem 経由で goroutine を起動する（規約: AGENTS.md）
 func (b *Bot) runWithSemaphore(fn func()) {
 	// セマフォを取得（ブロック可能）
 	b.goroutineSem <- struct{}{}
-	defer func() { <-b.goroutineSem }() // 解放
 
 	b.wg.Add(1)
 	go b.safeGoroutine(func() {
+		defer func() { <-b.goroutineSem }() // goroutine 終了時に解放
 		defer b.wg.Done()
 		fn()
 	})

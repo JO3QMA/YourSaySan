@@ -72,7 +72,7 @@ func (c *Connection) Join(ctx context.Context, guildID, channelID string) error 
 	c.vc = vc
 
 	if err := c.waitReady(ctx, vc); err != nil {
-		vc.Disconnect()
+		_ = vc.Disconnect()
 		c.vc = nil
 		return err
 	}

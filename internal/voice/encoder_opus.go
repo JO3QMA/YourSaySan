@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	opusSampleRate   = 48000
-	opusChannels     = 2
-	opusBitrate      = 64000
-	opusFrameMs      = 20
-	opusFrameSamples = opusSampleRate * opusFrameMs / 1000 // 960
-	opusMaxPacket    = 4000
+	opusSampleRate     = 48000
+	opusOutputChannels = 2 // Discord はステレオ 48kHz を要求
+	opusBitrate        = 64000
+	opusFrameMs        = 20
+	opusFrameSamples   = opusSampleRate * opusFrameMs / 1000 // 960
+	opusMaxPacket      = 4000
 )
 
 // OpusEncoder は CGO opus ライブラリで WAV → Opus に変換するエンコーダー。
@@ -47,9 +47,7 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 		return nil, fmt.Errorf("unsupported channel count %d (require 1 or 2)", channels)
 	}
 
-	// Discord はステレオ (2ch) 48kHz を要求するため、常にステレオでエンコードする
-	const outChannels = 2
-	enc, err := opus.NewEncoder(sampleRate, outChannels, opus.AppVoIP)
+	enc, err := opus.NewEncoder(sampleRate, opusOutputChannels, opus.AppVoIP)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create opus encoder: %w", err)
 	}
@@ -62,10 +60,10 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 	}
 
 	// 1フレームあたりの出力サンプル数 (20ms * 48kHz * 2ch = 1920)
-	outFrameSamples := opusFrameSamples * outChannels
+	outFrameSamples := opusFrameSamples * opusOutputChannels
 	// 入力バッファ: 1フレーム分 (960サンプル) × 入力チャンネル数 を一度に読み込む。
 	// モノラル (channels=1) の場合は後でアップミックスするため、
-	// 出力チャンネル数 (outChannels=2) ではなく入力チャンネル数を使う。
+	// 出力チャンネル数ではなく入力チャンネル数を使う。
 	buf := &audio.IntBuffer{
 		Format: &audio.Format{NumChannels: channels, SampleRate: sampleRate},
 		Data:   make([]int, opusFrameSamples*channels),
@@ -94,16 +92,18 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 			return nil, ctx.Err()
 		}
 
-		n, err := dec.PCMBuffer(buf)
-		if err == io.EOF || (err == nil && n == 0) {
+		nRead, err := dec.PCMBuffer(buf)
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read PCM: %w", err)
 		}
+		if nRead == 0 {
+			break
+		}
 
-		for i := 0; i < n; i++ {
-			s := buf.Data[i]
+		for _, s := range buf.Data[:nRead] {
 			var s16 int16
 			switch {
 			case s > 32767:

@@ -7,134 +7,104 @@ import (
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
+	"github.com/stretchr/testify/require"
 )
 
-func createMonoWavFile(t *testing.T, sampleRate int, samples []int) string {
-	f, err := os.CreateTemp("", "test*.wav")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer f.Close()
-
-	enc := wav.NewEncoder(f, sampleRate, 16, 1, 1)
-	intBuf := &audio.IntBuffer{
-		Format: &audio.Format{NumChannels: 1, SampleRate: sampleRate},
-		Data:   samples,
-	}
-	if err := enc.Write(intBuf); err != nil {
-		t.Fatalf("failed to write wav: %v", err)
-	}
-	if err := enc.Close(); err != nil {
-		t.Fatalf("failed to close wav: %v", err)
-	}
-	return f.Name()
-}
-
-func TestOpusEncoder_Reproduction(t *testing.T) {
-	// 48kHz mono WAV, 20ms = 960 samples
-	samples := make([]int, 960)
-	for i := range samples {
-		samples[i] = i % 1000
-	}
-	wavPath := createMonoWavFile(t, 48000, samples)
-	defer os.Remove(wavPath)
-
-	wavData, err := os.ReadFile(wavPath)
-	if err != nil {
-		t.Fatalf("failed to read wav file: %v", err)
-	}
-
-	encoder, err := NewOpusEncoder()
-	if err != nil {
-		t.Fatalf("Failed to create encoder: %v", err)
-	}
-
-	frames, err := encoder.Encode(context.Background(), wavData)
-	if err != nil {
-		t.Fatalf("Encode failed: %v", err)
-	}
-
-	if len(frames) != 1 {
-		t.Errorf("Expected 1 frame, got %d", len(frames))
-	}
-}
-
-func TestOpusEncoder_Padding(t *testing.T) {
-	// 48kHz mono WAV, 30ms = 1440 samples
-	samples := make([]int, 1440)
-	for i := range samples {
-		samples[i] = i % 1000
-	}
-	wavPath := createMonoWavFile(t, 48000, samples)
-	defer os.Remove(wavPath)
-
-	wavData, err := os.ReadFile(wavPath)
-	if err != nil {
-		t.Fatalf("failed to read wav file: %v", err)
-	}
-
-	encoder, err := NewOpusEncoder()
-	if err != nil {
-		t.Fatalf("Failed to create encoder: %v", err)
-	}
-
-	frames, err := encoder.Encode(context.Background(), wavData)
-	if err != nil {
-		t.Fatalf("Encode failed: %v", err)
-	}
-
-	if len(frames) != 2 {
-		t.Errorf("Expected 2 frames, got %d", len(frames))
-	}
-}
-
-func createStereoWavFile(t *testing.T, sampleRate int, samples []int) string {
+// createMonoWavFile は 48kHz / 16bit / mono の WAV バイト列を組み立てる。
+func createMonoWavFile(t *testing.T, samples []int16) []byte {
 	t.Helper()
-	f, err := os.CreateTemp("", "test*.wav")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer f.Close()
 
-	enc := wav.NewEncoder(f, sampleRate, 16, 2, 1)
-	intBuf := &audio.IntBuffer{
-		Format: &audio.Format{NumChannels: 2, SampleRate: sampleRate},
-		Data:   samples,
+	f, err := os.CreateTemp(t.TempDir(), "mono-*.wav")
+	require.NoError(t, err)
+
+	enc := wav.NewEncoder(f, opusSampleRate, 16, 1, 1)
+	buf := &audio.IntBuffer{
+		Format: &audio.Format{NumChannels: 1, SampleRate: opusSampleRate},
+		Data:   make([]int, len(samples)),
 	}
-	if err := enc.Write(intBuf); err != nil {
-		t.Fatalf("failed to write wav: %v", err)
+	for i, s := range samples {
+		buf.Data[i] = int(s)
 	}
-	if err := enc.Close(); err != nil {
-		t.Fatalf("failed to close wav: %v", err)
-	}
-	return f.Name()
+	require.NoError(t, enc.Write(buf))
+	require.NoError(t, enc.Close())
+	require.NoError(t, f.Close())
+
+	data, err := os.ReadFile(f.Name())
+	require.NoError(t, err)
+	return data
 }
 
-func TestOpusEncoder_StereoInput(t *testing.T) {
-	// 48kHz ステレオ WAV, 20ms = 960サンプル/ch × 2ch = 1920要素
-	samples := make([]int, 1920)
+// createStereoWavFile は 48kHz / 16bit / stereo（LRLR インターリーブ）の WAV バイト列を組み立てる。
+func createStereoWavFile(t *testing.T, interleavedLR []int16) []byte {
+	t.Helper()
+
+	if len(interleavedLR)%2 != 0 {
+		t.Fatalf("stereo samples must be L,R pairs (even length), got %d", len(interleavedLR))
+	}
+
+	f, err := os.CreateTemp(t.TempDir(), "stereo-*.wav")
+	require.NoError(t, err)
+
+	enc := wav.NewEncoder(f, opusSampleRate, 16, 2, 1)
+	buf := &audio.IntBuffer{
+		Format: &audio.Format{NumChannels: 2, SampleRate: opusSampleRate},
+		Data:   make([]int, len(interleavedLR)),
+	}
+	for i, s := range interleavedLR {
+		buf.Data[i] = int(s)
+	}
+	require.NoError(t, enc.Write(buf))
+	require.NoError(t, enc.Close())
+	require.NoError(t, f.Close())
+
+	data, err := os.ReadFile(f.Name())
+	require.NoError(t, err)
+	return data
+}
+
+func TestOpusEncoder_Encode_Mono(t *testing.T) {
+	// 1 フレーム分（20ms @ 48kHz mono = 960 サンプル）
+	samples := make([]int16, opusFrameSamples)
 	for i := range samples {
-		samples[i] = i % 1000
+		samples[i] = int16(i % 3000)
 	}
-	wavPath := createStereoWavFile(t, 48000, samples)
-	defer os.Remove(wavPath)
+	wavData := createMonoWavFile(t, samples)
 
-	wavData, err := os.ReadFile(wavPath)
-	if err != nil {
-		t.Fatalf("failed to read wav file: %v", err)
-	}
+	enc, err := NewOpusEncoder()
+	require.NoError(t, err)
+	frames, err := enc.Encode(context.Background(), wavData)
+	require.NoError(t, err)
+	require.Len(t, frames, 1)
+}
 
-	encoder, err := NewOpusEncoder()
-	if err != nil {
-		t.Fatalf("Failed to create encoder: %v", err)
+func TestOpusEncoder_Encode_Mono_Padding(t *testing.T) {
+	// 30ms @ 48kHz mono = 1440 サンプル → アップミックス後 2880 / 1920 = 1.5 → 2 Opus フレーム
+	samples := make([]int16, 1440)
+	for i := range samples {
+		samples[i] = int16(i % 3000)
 	}
+	wavData := createMonoWavFile(t, samples)
 
-	frames, err := encoder.Encode(context.Background(), wavData)
-	if err != nil {
-		t.Fatalf("Encode failed: %v", err)
-	}
+	enc, err := NewOpusEncoder()
+	require.NoError(t, err)
+	frames, err := enc.Encode(context.Background(), wavData)
+	require.NoError(t, err)
+	require.Len(t, frames, 2)
+}
 
-	if len(frames) != 1 {
-		t.Errorf("Expected 1 frame, got %d", len(frames))
+func TestOpusEncoder_Encode_Stereo(t *testing.T) {
+	// 1 フレーム分（20ms @ 48kHz stereo = 960 * 2 インターリーブサンプル）
+	n := opusFrameSamples * 2
+	interleaved := make([]int16, n)
+	for i := 0; i < n; i += 2 {
+		interleaved[i] = int16(i)
+		interleaved[i+1] = int16(i + 1)
 	}
+	wavData := createStereoWavFile(t, interleaved)
+
+	enc, err := NewOpusEncoder()
+	require.NoError(t, err)
+	frames, err := enc.Encode(context.Background(), wavData)
+	require.NoError(t, err)
+	require.Len(t, frames, 1)
 }
