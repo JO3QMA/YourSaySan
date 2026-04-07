@@ -46,8 +46,8 @@ func TestMoraeCountInQuery_fromJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &q); err != nil {
 		t.Fatal(err)
 	}
-	// 2 moras + (1 mora + 1 pause) = 4
-	if n := MoraeCountInQuery(&q); n != 4 {
-		t.Fatalf("got %d, want 4", n)
+	// pauseMora は Moras スライスに含まれず、川柳の音数にも含めないため 2 + 1 = 3
+	if n := MoraeCountInQuery(&q); n != 3 {
+		t.Fatalf("got %d, want 3", n)
 	}
 }
