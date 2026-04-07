@@ -47,14 +47,17 @@
 │   │   └── encoder_opus.go      # Pion Opus エンコーダー（USE_PION_OPUS=true）
 │   ├── voicevox/                # VoiceVox API クライアント
 │   │   ├── client.go            # HTTP クライアント（リトライ・指数バックオフ付き）
+│   │   ├── morae.go             # audio_query からのモーラ数集計（川柳判定など）
 │   │   └── types.go             # API レスポンス型定義
+│   ├── senryu/                  # 川柳（5-7-5）判定（VoiceVox モーラ数ベース）
+│   │   └── senryu.go
 │   ├── speaker/                 # 話者設定管理
 │   │   ├── manager.go           # Redis + LRU キャッシュによる話者設定管理
 │   │   └── interface.go         # SpeakerManager インターフェース
 │   └── errors/errors.go         # ドメインエラー定義
 ├── pkg/utils/                   # 汎用ユーティリティ
 │   ├── logger.go                # Logrus 初期化
-│   └── message.go               # メッセージ前処理
+│   └── message.go               # メッセージ前処理（Discord 向け置換は川柳と共有）
 ├── config/config.yaml           # 設定ファイル（環境変数展開: ${VAR:-default}）
 ├── compose.yaml                  # 本番 Docker Compose（bot + voicevox + redis）
 ├── Dockerfile                   # マルチステージビルド（builder / runtime / development）
@@ -74,6 +77,14 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 ```
 
 `commands` と `events` は `internal/bot` に直接依存せず、**インターフェース**（`bot_interface.go`）を通じて Bot に依存します。これにより循環参照を防ぎ、テスト容易性を確保しています。
+
+`events` は川柳判定のため `internal/senryu` と `pkg/utils`（メッセージ正規化の共有）に依存します。
+
+### 川柳（5-7-5）判定
+
+`SENRYU_ENABLED=true` のときのみ有効。**デフォルトは `false`**（アップグレード時に自動で返信が増えないようにするため）。有効化すると **ギルド内の全テキストチャンネル**で、空行を除いてちょうど3行のメッセージに対し VoiceVox の `/audio_query` 由来のモーラ数で 5-7-5 か判定し、該当時は `SENRYU_REPLY_TEXT` で返信します（DM は `GuildID` が無いため対象外）。読み上げ対象チャンネルかどうかに依存しません。候補1件あたり最大3回の `CountMorae`（各々リトライあり）が走るため、チャンネル数の多いサーバーでは VoiceVox 負荷と共有レートリミッタ（下記）の競合に注意。
+
+VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`CountMorae`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
 
 ### 音声再生パイプライン
 
@@ -150,6 +161,10 @@ type Config struct {
 		Port int    // REDIS_PORT
 		DB   int    // REDIS_DB
 	}
+	Senryu struct {
+		Enabled   bool   // SENRYU_ENABLED
+		ReplyText string // SENRYU_REPLY_TEXT
+	}
 }
 ```
 
@@ -166,6 +181,8 @@ type Config struct {
 - `REDIS_HOST` — Redis ホスト（デフォルト: `redis`）
 - `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
 - `REDIS_DB` — Redis DB番号（デフォルト: `0`）
+- `SENRYU_ENABLED` — 川柳（5-7-5）判定と返信を有効にするか（デフォルト: `false`。利用する場合は `true` を明示）
+- `SENRYU_REPLY_TEXT` — 川柳と判定したときの返信本文（デフォルト: `5-7-5の川柳に見えます！`）
 - `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
 - `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
 - `LOG_FORMAT` — ログ形式（`text`/`json`、デフォルト: `text`）
@@ -232,6 +249,7 @@ VoiceVox Engine は `compose.devcontainer.yml` に含まれており、自動起
 - VC 接続マップは `sync.RWMutex` で保護する（読み取りは `RLock`、書き込みは `Lock`）
 - goroutine の上限は `goroutineSem`（セマフォ、上限 100）で管理する
 - goroutine の起動は `runWithSemaphore` 経由で行う
+- 補足: `RunWithSemaphore` はスロット取得まで**呼び出し元をブロック**する。川柳判定はこれに従うが、`message_create` の **TTS 本処理は discordgo が割り当てたイベント用 goroutine 上で同期実行**されており、セマフォの外（discordgo 側の同時ハンドラ数は Bot の 100 上限と独立）。川柳を有効にするとセマフォ消費が増え、スロット枯渇時は同一メッセージハンドラ内の **TTS 処理開始も遅延**し得る
 
 ### Golang ライブラリ調査
 

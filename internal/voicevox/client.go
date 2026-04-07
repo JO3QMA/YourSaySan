@@ -65,46 +65,70 @@ func (c *Client) Speak(ctx context.Context, text string, speakerID int) ([]byte,
 }
 
 func (c *Client) speakWithRetry(ctx context.Context, text string, speakerID int) ([]byte, error) {
+	var audioData []byte
+	err := c.withVoiceVoxRetry(ctx, func() error {
+		var err error
+		audioData, err = c.speakOnce(ctx, text, speakerID)
+		return err
+	})
+	return audioData, err
+}
+
+// withVoiceVoxRetry は指数バックオフ・共有レート制限・4xx 即終了を Speak / CountMorae で共通化する。
+func (c *Client) withVoiceVoxRetry(ctx context.Context, op func() error) error {
 	var lastErr error
 
 	for attempt := 0; attempt < c.maxRetries; attempt++ {
 		if attempt > 0 {
-			// 指数バックオフ
 			backoff := c.retryBackoff * time.Duration(1<<uint(attempt-1))
 			if backoff > c.retryBackoffMax {
 				backoff = c.retryBackoffMax
 			}
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return ctx.Err()
 			case <-time.After(backoff):
 			}
 		}
 
-		// レート制限
 		if err := c.rateLimiter.Wait(ctx); err != nil {
-			return nil, fmt.Errorf("rate limiter error: %w", err)
+			return fmt.Errorf("rate limiter error: %w", err)
 		}
 
-		audioData, err := c.speakOnce(ctx, text, speakerID)
+		err := op()
 		if err == nil {
-			return audioData, nil
+			return nil
 		}
 
 		lastErr = err
 
-		// リトライ対象外のエラー（4xx）の場合は即座に返す
 		if httpErr, ok := err.(*HTTPError); ok && httpErr.StatusCode >= 400 && httpErr.StatusCode < 500 {
-			return nil, err
+			return err
 		}
 	}
 
-	return nil, fmt.Errorf("failed after %d attempts: %w", c.maxRetries, lastErr)
+	return fmt.Errorf("failed after %d attempts: %w", c.maxRetries, lastErr)
 }
 
-func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]byte, error) {
-	// 1. AudioQueryを取得
-	// テキストをURLエンコードしてクエリパラメータに含める
+// CountMorae は1行テキストのモーラ数を VoiceVox の分解に基づいて返す（Speak と同じリトライ・レート制限）。
+func (c *Client) CountMorae(ctx context.Context, text string, speakerID int) (int, error) {
+	var n int
+	err := c.withVoiceVoxRetry(ctx, func() error {
+		q, err := c.fetchAudioQuery(ctx, text, speakerID)
+		if err != nil {
+			return err
+		}
+		n = MoraeCountInQuery(q)
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// fetchAudioQuery は /audio_query を1回呼び出して結果を返す（レート制限・リトライは呼び出し側）。
+func (c *Client) fetchAudioQuery(ctx context.Context, text string, speakerID int) (*AudioQuery, error) {
 	encodedText := url.QueryEscape(text)
 	queryURL := fmt.Sprintf("%s/audio_query?text=%s&speaker=%d", c.baseURL, encodedText, speakerID)
 	req, err := http.NewRequestWithContext(ctx, "POST", queryURL, nil)
@@ -131,23 +155,32 @@ func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]b
 		return nil, fmt.Errorf("failed to decode audio_query: %w", err)
 	}
 
+	return &audioQuery, nil
+}
+
+func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]byte, error) {
+	audioQuery, err := c.fetchAudioQuery(ctx, text, speakerID)
+	if err != nil {
+		return nil, err
+	}
+
 	// DiscordのOpusエンコーダーは48kHzを要求するため、サンプルレートを48kHzに設定
 	audioQuery.OutputSamplingRate = 48000
 
-	// 2. Synthesisを実行
 	queryJSON, err := json.Marshal(audioQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal audio_query: %w", err)
 	}
 
+	// リトライ試行あたりの Wait は withVoiceVoxRetry が1回だけ行う（従来どおり TTS は1トークンで audio_query + synthesis の両方を許容）
 	synthURL := fmt.Sprintf("%s/synthesis?speaker=%d", c.baseURL, speakerID)
-	req, err = http.NewRequestWithContext(ctx, "POST", synthURL, bytes.NewReader(queryJSON))
+	req, err := http.NewRequestWithContext(ctx, "POST", synthURL, bytes.NewReader(queryJSON))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create synthesis request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err = c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request synthesis: %w", err)
 	}

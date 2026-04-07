@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JO3QMA/YourSaySan/internal/senryu"
 	"github.com/JO3QMA/YourSaySan/pkg/utils"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -27,8 +28,57 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 			return
 		}
 
+		cfg := b.GetConfig()
+
+		// 川柳（5-7-5）: ギルド内の全チャンネルが対象（DM は GuildID なしのため除外）
+		if cfg.GetSenryuEnabled() && m.GuildID != "" {
+			if lines, ok := senryu.ThreeLines(m.Content); ok {
+				channelID := m.ChannelID
+				messageID := m.ID
+				guildID := m.GuildID
+				authorID := m.Author.ID
+				replyText := cfg.GetSenryuReplyText()
+				session := b.GetSession()
+				b.RunWithSemaphore(func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					defer cancel()
+
+					speakerID, err := b.GetSpeakerManager().GetSpeaker(ctx, authorID)
+					if err != nil {
+						logrus.WithError(err).WithField("user_id", authorID).Warn("Failed to get speaker for senryu check")
+						speakerID = 2
+					}
+
+					is575, err := senryu.Is575Morae(ctx, b.GetVoiceVox(), lines, speakerID)
+					if err != nil {
+						logrus.WithError(err).WithFields(logrus.Fields{
+							"guild_id":   guildID,
+							"channel_id": channelID,
+							"message_id": messageID,
+						}).Warn("Senryu mora check failed")
+						return
+					}
+					if !is575 {
+						return
+					}
+
+					ref := &discordgo.MessageReference{
+						MessageID: messageID,
+						ChannelID: channelID,
+						GuildID:   guildID,
+					}
+					if _, err := session.ChannelMessageSendReply(channelID, replyText, ref); err != nil {
+						logrus.WithError(err).WithFields(logrus.Fields{
+							"guild_id":   guildID,
+							"channel_id": channelID,
+							"message_id": messageID,
+						}).Warn("Failed to send senryu reply")
+					}
+				})
+			}
+		}
+
 		// 4. 読み上げ対象チャンネルかチェック
-		// summonで呼び出されていないチャンネルのメッセージはログに出さない
 		if !b.GetState().IsTextChannelActive(m.GuildID, m.ChannelID) {
 			return
 		}
@@ -52,8 +102,7 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		}
 
 		// 6. メッセージ変換
-		config := b.GetConfig()
-		transformedText := utils.TransformMessage(m.Content, config.GetVoiceVoxMaxMessageLength())
+		transformedText := utils.TransformMessage(m.Content, cfg.GetVoiceVoxMaxMessageLength())
 
 		if transformedText == "" {
 			logrus.WithFields(logrus.Fields{

@@ -22,8 +22,8 @@ type Bot struct {
 	config  *Config
 	state   *State
 
-	// 共有リソース
-	voicevox       commands.VoiceVoxAPI       // インターフェース（テスト容易性のため）
+	// 共有リソース（具象 *voicevox.Client: commands は狭い VoiceVoxAPI、events は CountMorae 付きで参照）
+	voicevox       *voicevox.Client
 	speakerManager commands.SpeakerManagerAPI // インターフェース
 
 	// マルチギルド対応: ギルドごとのVC接続管理
@@ -282,6 +282,10 @@ func (w *eventsBotWrapper) GetState() events.StateInterface {
 	return w.bot.state
 }
 
+func (w *eventsBotWrapper) GetSession() *discordgo.Session {
+	return w.bot.session
+}
+
 func (w *eventsBotWrapper) GetVoiceVox() events.VoiceVoxAPI {
 	return w.bot.voicevox
 }
@@ -308,6 +312,10 @@ func (w *eventsBotWrapper) SetQueueSize(guildID string, size int) {
 
 func (w *eventsBotWrapper) RegisterCommandsToDiscord() error {
 	return w.bot.RegisterCommandsToDiscord()
+}
+
+func (w *eventsBotWrapper) RunWithSemaphore(fn func()) {
+	w.bot.runWithSemaphore(fn)
 }
 
 func (b *Bot) GetVoiceConnection(guildID string) (*voice.Connection, error) {

@@ -28,6 +28,11 @@ type Config struct {
 		Port int    `yaml:"port" mapstructure:"port"`
 		DB   int    `yaml:"db" mapstructure:"db"`
 	} `yaml:"redis" mapstructure:"redis"`
+
+	Senryu struct {
+		Enabled   bool   `yaml:"enabled" mapstructure:"enabled"`
+		ReplyText string `yaml:"reply_text" mapstructure:"reply_text"`
+	} `yaml:"senryu" mapstructure:"senryu"`
 }
 
 // GetBotStatus はBotのステータスを返す
@@ -48,6 +53,16 @@ func (c *Config) GetBotOwnerID() string {
 // GetVoiceVoxMaxMessageLength は読み上げメッセージの最大長を返す
 func (c *Config) GetVoiceVoxMaxMessageLength() int {
 	return c.VoiceVox.MaxMessageLength
+}
+
+// GetSenryuEnabled は川柳判定が有効か返す
+func (c *Config) GetSenryuEnabled() bool {
+	return c.Senryu.Enabled
+}
+
+// GetSenryuReplyText は川柳判定時の返信本文を返す
+func (c *Config) GetSenryuReplyText() string {
+	return c.Senryu.ReplyText
 }
 
 func LoadConfig() (*Config, error) {
@@ -77,6 +92,10 @@ func LoadConfig() (*Config, error) {
 	config.Redis.Port = getEnvIntWithDefault("REDIS_PORT", 6379)
 	config.Redis.DB = getEnvIntWithDefault("REDIS_DB", 0)
 
+	// 川柳（5-7-5）判定（既存デプロイへの影響を避けるため既定はオフ。利用時は SENRYU_ENABLED=true）
+	config.Senryu.Enabled = getEnvBoolWithDefault("SENRYU_ENABLED", false)
+	config.Senryu.ReplyText = getEnvWithDefault("SENRYU_REPLY_TEXT", "5-7-5の川柳に見えます！")
+
 	// 3. 設定バリデーション
 	if err := validateConfig(&config); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
@@ -101,6 +120,18 @@ func getEnvIntWithDefault(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func getEnvBoolWithDefault(key string, defaultValue bool) bool {
+	value, ok := os.LookupEnv(key)
+	if !ok || value == "" {
+		return defaultValue
+	}
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return b
 }
 
 func validateConfig(config *Config) error {
