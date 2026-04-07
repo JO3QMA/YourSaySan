@@ -33,10 +33,15 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Read golangci-lint version
+        id: golangci_lint
+        run: echo "version=$(tr -d '\r\n' < .golangci-lint-version)" >> "$GITHUB_OUTPUT"
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.8
+          version: ${{ steps.golangci_lint.outputs.version }}
+          args: --config=.golangci.yml
 
       - name: Go test
         run: go test ./...
