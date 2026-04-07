@@ -2,7 +2,7 @@
 # ==================================
 # 1. ビルドステージ
 # ==================================
-FROM golang:1.25-trixie AS builder
+FROM golang:1.26-trixie AS builder
 
 # ビルド依存関係
 # Opusエンコーダー（USE_PION_OPUS=true）用: libopus-dev, libopusfile-dev（CGOビルド時）
@@ -59,7 +59,7 @@ CMD ["./yoursay-bot"]
 # ==================================
 # 3. 開発ステージ
 # ==================================
-FROM golang:1.25-trixie AS development
+FROM golang:1.26-trixie AS development
 
 # ビルド依存関係と開発ツール
 # Opusエンコーダー（USE_PION_OPUS=true）用: libopus-dev, libopusfile-dev（CGOビルド時）
