@@ -52,6 +52,8 @@ services:
       - REDIS_DB=${REDIS_DB:-0}
       - USE_PION_OPUS=${USE_PION_OPUS:-false}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SENRYU_ENABLED=${SENRYU_ENABLED:-true}
+      - SENRYU_REPLY_TEXT=${SENRYU_REPLY_TEXT:-川柳を検出しました！}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
