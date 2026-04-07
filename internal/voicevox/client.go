@@ -172,11 +172,7 @@ func (c *Client) speakOnce(ctx context.Context, text string, speakerID int) ([]b
 		return nil, fmt.Errorf("failed to marshal audio_query: %w", err)
 	}
 
-	// /audio_query と /synthesis は別 HTTP リクエストのため、それぞれレート制限を取る
-	if err := c.rateLimiter.Wait(ctx); err != nil {
-		return nil, fmt.Errorf("rate limiter error: %w", err)
-	}
-
+	// リトライ試行あたりの Wait は withVoiceVoxRetry が1回だけ行う（従来どおり TTS は1トークンで audio_query + synthesis の両方を許容）
 	synthURL := fmt.Sprintf("%s/synthesis?speaker=%d", c.baseURL, speakerID)
 	req, err := http.NewRequestWithContext(ctx, "POST", synthURL, bytes.NewReader(queryJSON))
 	if err != nil {

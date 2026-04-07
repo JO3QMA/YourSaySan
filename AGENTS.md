@@ -82,9 +82,9 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 
 ### 川柳（5-7-5）判定
 
-`SENRYU_ENABLED=true`（デフォルト）のとき、**ギルド内の全テキストチャンネル**で、空行を除いてちょうど3行のメッセージに対し VoiceVox の `/audio_query` 由来のモーラ数で 5-7-5 か判定し、該当時は `SENRYU_REPLY_TEXT` で返信します（DM は `GuildID` が無いため対象外）。読み上げ対象チャンネルかどうかに依存しません。
+`SENRYU_ENABLED=true` のときのみ有効。**デフォルトは `false`**（アップグレード時に自動で返信が増えないようにするため）。有効化すると **ギルド内の全テキストチャンネル**で、空行を除いてちょうど3行のメッセージに対し VoiceVox の `/audio_query` 由来のモーラ数で 5-7-5 か判定し、該当時は `SENRYU_REPLY_TEXT` で返信します（DM は `GuildID` が無いため対象外）。読み上げ対象チャンネルかどうかに依存しません。候補1件あたり最大3回の `CountMorae`（各々リトライあり）が走るため、チャンネル数の多いサーバーでは VoiceVox 負荷と共有レートリミッタ（下記）の競合に注意。
 
-VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（`/audio_query` + `/synthesis` は試行あたりトークン2消費）、`CountMorae`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
+VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`CountMorae`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
 
 ### 音声再生パイプライン
 
@@ -181,7 +181,7 @@ type Config struct {
 - `REDIS_HOST` — Redis ホスト（デフォルト: `redis`）
 - `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
 - `REDIS_DB` — Redis DB番号（デフォルト: `0`）
-- `SENRYU_ENABLED` — 川柳（5-7-5）判定と返信を有効にするか（デフォルト: `true`）
+- `SENRYU_ENABLED` — 川柳（5-7-5）判定と返信を有効にするか（デフォルト: `false`。利用する場合は `true` を明示）
 - `SENRYU_REPLY_TEXT` — 川柳と判定したときの返信本文（デフォルト: `5-7-5の川柳に見えます！`）
 - `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
 - `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
@@ -249,6 +249,7 @@ VoiceVox Engine は `compose.devcontainer.yml` に含まれており、自動起
 - VC 接続マップは `sync.RWMutex` で保護する（読み取りは `RLock`、書き込みは `Lock`）
 - goroutine の上限は `goroutineSem`（セマフォ、上限 100）で管理する
 - goroutine の起動は `runWithSemaphore` 経由で行う
+- 補足: `RunWithSemaphore` はスロット取得まで**呼び出し元をブロック**する。川柳判定はこれに従うが、`message_create` の **TTS 本処理は discordgo が割り当てたイベント用 goroutine 上で同期実行**されており、セマフォの外（discordgo 側の同時ハンドラ数は Bot の 100 上限と独立）。川柳を有効にするとセマフォ消費が増え、スロット枯渇時は同一メッセージハンドラ内の **TTS 処理開始も遅延**し得る
 
 ### Golang ライブラリ調査
 

@@ -22,6 +22,7 @@ var (
 
 // ApplyDiscordTextReplacements はメンション・URL・Markdown 等を、読み上げ・川柳判定と同じルールで置換する。
 // 改行の空白化・最大長切り詰めは含まない（1行単位の処理では CollapseWhitespace と TrimSpace を併用する）。
+// codeBlockRx は引数文字列内でのみマッチする。川柳のように行ごとに呼ぶ場合、複数行にまたがる ``` は除去されない（1行に収まるフェンスのみ効く）。
 func ApplyDiscordTextReplacements(content string) string {
 	content = mentionRegex.ReplaceAllString(content, "@ユーザー")
 	content = channelRegex.ReplaceAllString(content, "#チャンネル")

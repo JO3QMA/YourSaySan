@@ -92,8 +92,8 @@ func LoadConfig() (*Config, error) {
 	config.Redis.Port = getEnvIntWithDefault("REDIS_PORT", 6379)
 	config.Redis.DB = getEnvIntWithDefault("REDIS_DB", 0)
 
-	// 川柳（5-7-5）判定
-	config.Senryu.Enabled = getEnvBoolWithDefault("SENRYU_ENABLED", true)
+	// 川柳（5-7-5）判定（既存デプロイへの影響を避けるため既定はオフ。利用時は SENRYU_ENABLED=true）
+	config.Senryu.Enabled = getEnvBoolWithDefault("SENRYU_ENABLED", false)
 	config.Senryu.ReplyText = getEnvWithDefault("SENRYU_REPLY_TEXT", "5-7-5の川柳に見えます！")
 
 	// 3. 設定バリデーション

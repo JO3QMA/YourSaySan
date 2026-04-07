@@ -13,6 +13,7 @@ type MoraeCounter interface {
 }
 
 // NormalizeLine は1行を VoiceVox に渡す前に、TransformMessage と同種の置換を行う（改行は含まない想定）。
+// コードフェンスが複数行に分かれる場合は行単位では utils の codeBlock 除去が効かない（意図せぬ過剰除去も避けられる）。
 func NormalizeLine(s string) string {
 	s = utils.ApplyDiscordTextReplacements(s)
 	s = utils.CollapseWhitespace(s)
