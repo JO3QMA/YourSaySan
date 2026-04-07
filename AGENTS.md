@@ -47,14 +47,17 @@
 │   │   └── encoder_opus.go      # Pion Opus エンコーダー（USE_PION_OPUS=true）
 │   ├── voicevox/                # VoiceVox API クライアント
 │   │   ├── client.go            # HTTP クライアント（リトライ・指数バックオフ付き）
+│   │   ├── morae.go             # audio_query からのモーラ数集計（川柳判定など）
 │   │   └── types.go             # API レスポンス型定義
+│   ├── senryu/                  # 川柳（5-7-5）判定（VoiceVox モーラ数ベース）
+│   │   └── senryu.go
 │   ├── speaker/                 # 話者設定管理
 │   │   ├── manager.go           # Redis + LRU キャッシュによる話者設定管理
 │   │   └── interface.go         # SpeakerManager インターフェース
 │   └── errors/errors.go         # ドメインエラー定義
 ├── pkg/utils/                   # 汎用ユーティリティ
 │   ├── logger.go                # Logrus 初期化
-│   └── message.go               # メッセージ前処理
+│   └── message.go               # メッセージ前処理（Discord 向け置換は川柳と共有）
 ├── config/config.yaml           # 設定ファイル（環境変数展開: ${VAR:-default}）
 ├── compose.yaml                  # 本番 Docker Compose（bot + voicevox + redis）
 ├── Dockerfile                   # マルチステージビルド（builder / runtime / development）
@@ -74,6 +77,14 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 ```
 
 `commands` と `events` は `internal/bot` に直接依存せず、**インターフェース**（`bot_interface.go`）を通じて Bot に依存します。これにより循環参照を防ぎ、テスト容易性を確保しています。
+
+`events` は川柳判定のため `internal/senryu` と `pkg/utils`（メッセージ正規化の共有）に依存します。
+
+### 川柳（5-7-5）判定
+
+`SENRYU_ENABLED=true`（デフォルト）のとき、**ギルド内の全テキストチャンネル**で、空行を除いてちょうど3行のメッセージに対し VoiceVox の `/audio_query` 由来のモーラ数で 5-7-5 か判定し、該当時は `SENRYU_REPLY_TEXT` で返信します（DM は `GuildID` が無いため対象外）。読み上げ対象チャンネルかどうかに依存しません。
+
+VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（`/audio_query` + `/synthesis` は試行あたりトークン2消費）、`CountMorae`、`GetSpeakers` が同じバケツを共有します。活発なサーバーでは川柳チェックが TTS や話者一覧取得のスループットに影響し得ます。
 
 ### 音声再生パイプライン
 
@@ -150,6 +161,10 @@ type Config struct {
 		Port int    // REDIS_PORT
 		DB   int    // REDIS_DB
 	}
+	Senryu struct {
+		Enabled   bool   // SENRYU_ENABLED
+		ReplyText string // SENRYU_REPLY_TEXT
+	}
 }
 ```
 
@@ -166,6 +181,8 @@ type Config struct {
 - `REDIS_HOST` — Redis ホスト（デフォルト: `redis`）
 - `REDIS_PORT` — Redis ポート（デフォルト: `6379`）
 - `REDIS_DB` — Redis DB番号（デフォルト: `0`）
+- `SENRYU_ENABLED` — 川柳（5-7-5）判定と返信を有効にするか（デフォルト: `true`）
+- `SENRYU_REPLY_TEXT` — 川柳と判定したときの返信本文（デフォルト: `5-7-5の川柳に見えます！`）
 - `USE_PION_OPUS` — `true` にすると DCA の代わりに Pion Opus エンコーダーを使用（デフォルト: `false`）
 - `LOG_LEVEL` — ログレベル（`trace`/`debug`/`info`/`warn`/`error`/`fatal`、デフォルト: `info`）
 - `LOG_FORMAT` — ログ形式（`text`/`json`、デフォルト: `text`）

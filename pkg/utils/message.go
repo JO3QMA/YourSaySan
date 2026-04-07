@@ -5,55 +5,55 @@ import (
 	"strings"
 )
 
+var (
+	mentionRegex  = regexp.MustCompile(`<@!?(\d+)>`)
+	channelRegex  = regexp.MustCompile(`<#(\d+)>`)
+	roleRegex     = regexp.MustCompile(`<@&(\d+)>`)
+	emojiRegex    = regexp.MustCompile(`<:(\w+):\d+>`)
+	urlRegex      = regexp.MustCompile(`https?://[^\s<>"'()]+`)
+	boldRegex     = regexp.MustCompile(`\*\*(.+?)\*\*`)
+	italicRegex   = regexp.MustCompile(`\*(.+?)\*`)
+	underRegex    = regexp.MustCompile(`__(.+?)__`)
+	strikeRegex   = regexp.MustCompile(`~~(.+?)~~`)
+	inlineCodeRx  = regexp.MustCompile("`(.+?)`")
+	codeBlockRx   = regexp.MustCompile("```[\\s\\S]*?```")
+	whitespaceRx  = regexp.MustCompile(`\s+`)
+)
+
+// ApplyDiscordTextReplacements はメンション・URL・Markdown 等を、読み上げ・川柳判定と同じルールで置換する。
+// 改行の空白化・最大長切り詰めは含まない（1行単位の処理では CollapseWhitespace と TrimSpace を併用する）。
+func ApplyDiscordTextReplacements(content string) string {
+	content = mentionRegex.ReplaceAllString(content, "@ユーザー")
+	content = channelRegex.ReplaceAllString(content, "#チャンネル")
+	content = roleRegex.ReplaceAllString(content, "@ロール")
+	content = emojiRegex.ReplaceAllString(content, ":$1:")
+	content = urlRegex.ReplaceAllString(content, "URL省略")
+	content = boldRegex.ReplaceAllString(content, "$1")
+	content = italicRegex.ReplaceAllString(content, "$1")
+	content = underRegex.ReplaceAllString(content, "$1")
+	content = strikeRegex.ReplaceAllString(content, "$1")
+	content = inlineCodeRx.ReplaceAllString(content, "$1")
+	content = codeBlockRx.ReplaceAllString(content, "")
+	return content
+}
+
+// CollapseWhitespace は連続する空白類を1つの半角スペースにまとめる。
+func CollapseWhitespace(s string) string {
+	return whitespaceRx.ReplaceAllString(s, " ")
+}
+
 // TransformMessage はメッセージを読み上げ用に変換する
 func TransformMessage(content string, maxLength int) string {
-	// 1. メンション変換（<@user_id> -> @username）
-	// 実際の実装では、Discord APIからユーザー名を取得する必要がある
-	// ここでは簡易実装として、メンションを「ユーザー」に変換
-	mentionRegex := regexp.MustCompile(`<@!?(\d+)>`)
-	content = mentionRegex.ReplaceAllString(content, "@ユーザー")
+	content = ApplyDiscordTextReplacements(content)
 
-	// 2. チャンネルメンション変換（<#channel_id> -> #channel-name）
-	channelRegex := regexp.MustCompile(`<#(\d+)>`)
-	content = channelRegex.ReplaceAllString(content, "#チャンネル")
-
-	// 3. ロールメンション変換（<@&role_id> -> @role-name）
-	roleRegex := regexp.MustCompile(`<@&(\d+)>`)
-	content = roleRegex.ReplaceAllString(content, "@ロール")
-
-	// 4. カスタム絵文字変換（<:name:id> -> :name:）
-	emojiRegex := regexp.MustCompile(`<:(\w+):\d+>`)
-	content = emojiRegex.ReplaceAllString(content, ":$1:")
-
-	// 5. URLを「URL省略」に置換
-	urlRegex := regexp.MustCompile(`https?://[^\s<>"'()]+`)
-	content = urlRegex.ReplaceAllString(content, "URL省略")
-
-	// 6. Markdown記法の除去
-	// **bold** -> bold
-	content = regexp.MustCompile(`\*\*(.+?)\*\*`).ReplaceAllString(content, "$1")
-	// *italic* -> italic
-	content = regexp.MustCompile(`\*(.+?)\*`).ReplaceAllString(content, "$1")
-	// __underline__ -> underline
-	content = regexp.MustCompile(`__(.+?)__`).ReplaceAllString(content, "$1")
-	// ~~strikethrough~~ -> strikethrough
-	content = regexp.MustCompile(`~~(.+?)~~`).ReplaceAllString(content, "$1")
-	// `code` -> code
-	content = regexp.MustCompile("`(.+?)`").ReplaceAllString(content, "$1")
-	// ```code block``` -> code block
-	content = regexp.MustCompile("```[\\s\\S]*?```").ReplaceAllString(content, "")
-
-	// 7. 改行を空白に変換
+	// 改行を空白に変換
 	content = strings.ReplaceAll(content, "\n", " ")
 	content = strings.ReplaceAll(content, "\r", " ")
 
-	// 8. 連続する空白を1つに
-	content = regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
-
-	// 9. 前後の空白を削除
+	content = CollapseWhitespace(content)
 	content = strings.TrimSpace(content)
 
-	// 10. 最大文字数チェック
+	// 最大文字数チェック
 	if maxLength > 0 && len([]rune(content)) > maxLength {
 		runes := []rune(content)
 		content = string(runes[:maxLength]) + "以下略"
@@ -61,4 +61,3 @@ func TransformMessage(content string, maxLength int) string {
 
 	return content
 }
-

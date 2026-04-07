@@ -2,8 +2,9 @@ package senryu
 
 import (
 	"context"
-	"regexp"
 	"strings"
+
+	"github.com/JO3QMA/YourSaySan/pkg/utils"
 )
 
 // MoraeCounter は VoiceVox 等による1行あたりのモーラ数取得に使う。
@@ -11,35 +12,10 @@ type MoraeCounter interface {
 	CountMorae(ctx context.Context, text string, speakerID int) (int, error)
 }
 
-var (
-	mentionRegex  = regexp.MustCompile(`<@!?(\d+)>`)
-	channelRegex  = regexp.MustCompile(`<#(\d+)>`)
-	roleRegex     = regexp.MustCompile(`<@&(\d+)>`)
-	emojiRegex    = regexp.MustCompile(`<:(\w+):\d+>`)
-	urlRegex      = regexp.MustCompile(`https?://[^\s<>"'()]+`)
-	boldRegex     = regexp.MustCompile(`\*\*(.+?)\*\*`)
-	italicRegex   = regexp.MustCompile(`\*(.+?)\*`)
-	underRegex    = regexp.MustCompile(`__(.+?)__`)
-	strikeRegex   = regexp.MustCompile(`~~(.+?)~~`)
-	inlineCodeRx  = regexp.MustCompile("`(.+?)`")
-	codeBlockRx   = regexp.MustCompile("```[\\s\\S]*?```")
-	whitespaceRx  = regexp.MustCompile(`\s+`)
-)
-
 // NormalizeLine は1行を VoiceVox に渡す前に、TransformMessage と同種の置換を行う（改行は含まない想定）。
 func NormalizeLine(s string) string {
-	s = mentionRegex.ReplaceAllString(s, "@ユーザー")
-	s = channelRegex.ReplaceAllString(s, "#チャンネル")
-	s = roleRegex.ReplaceAllString(s, "@ロール")
-	s = emojiRegex.ReplaceAllString(s, ":$1:")
-	s = urlRegex.ReplaceAllString(s, "URL省略")
-	s = boldRegex.ReplaceAllString(s, "$1")
-	s = italicRegex.ReplaceAllString(s, "$1")
-	s = underRegex.ReplaceAllString(s, "$1")
-	s = strikeRegex.ReplaceAllString(s, "$1")
-	s = inlineCodeRx.ReplaceAllString(s, "$1")
-	s = codeBlockRx.ReplaceAllString(s, "")
-	s = whitespaceRx.ReplaceAllString(s, " ")
+	s = utils.ApplyDiscordTextReplacements(s)
+	s = utils.CollapseWhitespace(s)
 	return strings.TrimSpace(s)
 }
 
