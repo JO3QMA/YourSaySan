@@ -54,6 +54,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - SENRYU_ENABLED=${SENRYU_ENABLED:-true}
       - SENRYU_REPLY_TEXT=${SENRYU_REPLY_TEXT:-川柳を検出しました！}
+      - SENRYU_MAX_BLOB_RUNES=${SENRYU_MAX_BLOB_RUNES:-100}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
