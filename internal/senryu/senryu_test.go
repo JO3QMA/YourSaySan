@@ -3,6 +3,7 @@ package senryu
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -131,5 +132,66 @@ func TestIs575Morae(t *testing.T) {
 	_, err = Is575Morae(ctx, stubErr, lines, 1)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestNormalizeSenryuBlob_stripsSpaceAndNewline(t *testing.T) {
+	t.Parallel()
+	// 本文に改行や空白があっても blob は連続化（IsUnbrokenSenryuCandidate は raw に改行があると偽）
+	got := NormalizeSenryuBlob("  あ い う \t えお  ")
+	if got != "あいうえお" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestIsUnbrokenSenryuCandidate(t *testing.T) {
+	t.Parallel()
+	// 17 ひらがな（ふるいけや + かわずとびこむ + みずのおと）
+	haiku := "ふるいけやかわずとびこむみずのおと"
+	blob, ok := IsUnbrokenSenryuCandidate(haiku)
+	if !ok || blob != haiku {
+		t.Fatalf("ok=%v blob=%q", ok, blob)
+	}
+	_, ok = IsUnbrokenSenryuCandidate("a\nb")
+	if ok {
+		t.Fatal("newline should reject")
+	}
+	_, ok = IsUnbrokenSenryuCandidate("short")
+	if ok {
+		t.Fatal("too short")
+	}
+	long := strings.Repeat("あ", unbrokenSenryuMaxRunes+1)
+	_, ok = IsUnbrokenSenryuCandidate(long)
+	if ok {
+		t.Fatal("too long")
+	}
+	// スペース区切りでも blob は17文字
+	blob, ok = IsUnbrokenSenryuCandidate("ふるいけや かわずとびこむ みずのおと")
+	if !ok || blob != haiku {
+		t.Fatalf("ok=%v blob=%q want %q", ok, blob, haiku)
+	}
+}
+
+func TestIs575MoraeUnbroken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	stub := &stubCounter{counts: []int{17}}
+	ok, err := Is575MoraeUnbroken(ctx, stub, "ふるいけやかわずとびこむみずのおと", 1)
+	if err != nil || !ok {
+		t.Fatalf("err=%v ok=%v", err, ok)
+	}
+	stub2 := &stubCounter{counts: []int{16}}
+	ok, err = Is575MoraeUnbroken(ctx, stub2, "x", 1)
+	if err != nil || ok {
+		t.Fatalf("err=%v ok=%v want false", err, ok)
+	}
+	stubErr := &stubCounter{err: errors.New("boom")}
+	_, err = Is575MoraeUnbroken(ctx, stubErr, "x", 1)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	ok, err = Is575MoraeUnbroken(ctx, stub, "", 1)
+	if err != nil || ok {
+		t.Fatalf("empty blob: err=%v ok=%v", err, ok)
 	}
 }
