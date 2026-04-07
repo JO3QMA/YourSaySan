@@ -395,10 +395,10 @@ func (b *Bot) SetQueueSize(guildID string, size int) {
 func (b *Bot) runWithSemaphore(fn func()) { //nolint:unused // セマフォ付き起動の参照実装として保持
 	// セマフォを取得（ブロック可能）
 	b.goroutineSem <- struct{}{}
-	defer func() { <-b.goroutineSem }() // 解放
 
 	b.wg.Add(1)
 	go b.safeGoroutine(func() {
+		defer func() { <-b.goroutineSem }() // goroutine 終了時に解放
 		defer b.wg.Done()
 		fn()
 	})
