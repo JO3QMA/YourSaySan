@@ -16,7 +16,7 @@ jobs:
       CGO_ENABLED: "1"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install CGO dependencies
         run: |
@@ -29,9 +29,14 @@ jobs:
             libopusfile-dev
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.8
 
       - name: Go test
         run: go test ./...
