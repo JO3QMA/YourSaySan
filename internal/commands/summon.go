@@ -63,7 +63,9 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 			"old_channel": existingConn.GetChannelID(),
 			"new_channel": channelID,
 		}).Debug("Disconnecting from old voice channel")
-		existingConn.Leave()
+		if leaveErr := existingConn.Leave(); leaveErr != nil {
+			logrus.WithError(leaveErr).WithField("guild_id", guildID).Warn("failed to leave existing voice connection")
+		}
 		b.RemoveVoiceConnection(guildID)
 	}
 

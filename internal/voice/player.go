@@ -2,7 +2,6 @@ package voice
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -77,7 +76,7 @@ func (p *Player) playLoop(ctx context.Context) {
 				"stack": string(debug.Stack()),
 			}).Error("panic in player loop")
 		}
-		p.conn.Speaking(false)
+		_ = p.conn.Speaking(false)
 		close(p.doneCh)
 	}()
 
@@ -138,8 +137,8 @@ func (p *Player) playItem(ctx context.Context, item AudioItem) {
 		"frame_count": len(frames),
 	}).Trace("sending opus frames")
 
-	p.conn.Speaking(true)
-	defer p.conn.Speaking(false)
+	_ = p.conn.Speaking(true)
+	defer func() { _ = p.conn.Speaking(false) }()
 
 	// 20ms ごとにフレームを送信（Discord Opus の標準フレーム長）
 	ticker := time.NewTicker(20 * time.Millisecond)
@@ -187,10 +186,4 @@ func (p *Player) IsActive() bool {
 	default:
 		return true
 	}
-}
-
-// formatDuration はデバッグ用のフレーム時間計算ヘルパー。
-func formatDuration(frameCount int) string {
-	ms := frameCount * 20
-	return fmt.Sprintf("%dms", ms)
 }

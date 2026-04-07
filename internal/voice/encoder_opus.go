@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
@@ -12,10 +11,9 @@ import (
 )
 
 const (
-	opusSampleRate  = 48000
-	opusChannels    = 2
-	opusBitrate     = 64000
-	opusFrameMs     = 20
+	opusSampleRate   = 48000
+	opusBitrate      = 64000
+	opusFrameMs      = 20
 	opusFrameSamples = opusSampleRate * opusFrameMs / 1000 // 960
 	opusMaxPacket   = 4000
 )
@@ -88,15 +86,15 @@ func (e *OpusEncoder) Encode(ctx context.Context, wavData []byte) ([][]byte, err
 			return nil, ctx.Err()
 		}
 
-		_, err := dec.PCMBuffer(buf)
-		if err == io.EOF || (err == nil && len(buf.Data) == 0) {
-			break
-		}
+		nRead, err := dec.PCMBuffer(buf)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read PCM: %w", err)
 		}
+		if nRead == 0 {
+			break
+		}
 
-		for _, s := range buf.Data {
+		for _, s := range buf.Data[:nRead] {
 			var s16 int16
 			switch {
 			case s > 32767:
