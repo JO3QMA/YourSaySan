@@ -93,4 +93,3 @@ func SpeakerHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interacti
 		},
 	})
 }
-

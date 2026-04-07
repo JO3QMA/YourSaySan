@@ -45,4 +45,3 @@ func InitLogger() {
 		"format": logFormat,
 	}).Info("Logger initialized")
 }
-

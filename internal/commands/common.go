@@ -109,4 +109,3 @@ func RegisterAllCommands(b BotInterface) *Registry {
 
 	return reg
 }
-

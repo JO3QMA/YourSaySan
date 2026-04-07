@@ -24,8 +24,8 @@ type Player struct {
 
 	mu         sync.Mutex
 	cancelPlay context.CancelFunc // 現在再生中のアイテムのキャンセル
-	shutdownCh chan struct{}       // Shutdown() で閉じる
-	doneCh     chan struct{}       // playLoop 終了通知
+	shutdownCh chan struct{}      // Shutdown() で閉じる
+	doneCh     chan struct{}      // playLoop 終了通知
 }
 
 // NewPlayer は Player を作成する。Start を呼ぶまで再生は始まらない。

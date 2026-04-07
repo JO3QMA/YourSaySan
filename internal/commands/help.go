@@ -55,16 +55,16 @@ func showCommandList(b BotInterface, s *discordgo.Session, i *discordgo.Interact
 
 func showCommandDetail(b BotInterface, s *discordgo.Session, i *discordgo.InteractionCreate, commandName string) error {
 	descriptions := map[string]string{
-		"ping":        "Botの死活確認を行います。",
-		"help":        "利用可能なコマンドの一覧または詳細を表示します。",
-		"invite":      "Botを他のサーバーに招待するためのURLを表示します。",
-		"summon":      "BotをVCに参加させます。",
-		"bye":         "BotをVCから退出させます。",
-		"reconnect":   "VC接続を再接続します。",
-		"stop":        "現在の読み上げを中断します。",
-		"speaker":     "ユーザーの話者を設定します。",
+		"ping":         "Botの死活確認を行います。",
+		"help":         "利用可能なコマンドの一覧または詳細を表示します。",
+		"invite":       "Botを他のサーバーに招待するためのURLを表示します。",
+		"summon":       "BotをVCに参加させます。",
+		"bye":          "BotをVCから退出させます。",
+		"reconnect":    "VC接続を再接続します。",
+		"stop":         "現在の読み上げを中断します。",
+		"speaker":      "ユーザーの話者を設定します。",
 		"speaker_list": "利用可能な話者の一覧を表示します。",
-		"status":      "Botの状態情報を表示します（開発者用）。",
+		"status":       "Botの状態情報を表示します（開発者用）。",
 	}
 
 	desc, exists := descriptions[commandName]
@@ -91,4 +91,3 @@ func showCommandDetail(b BotInterface, s *discordgo.Session, i *discordgo.Intera
 		},
 	})
 }
-
