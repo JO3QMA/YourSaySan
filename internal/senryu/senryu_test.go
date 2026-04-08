@@ -94,6 +94,43 @@ func TestNormalizeSenryuBlob_stripsSpaceAndNewline(t *testing.T) {
 	}
 }
 
+func TestSplitBlobBySentenceDelimiters(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		blob string
+		want []string
+	}{
+		{name: "empty", blob: "", want: nil},
+		{name: "no_delimiter", blob: "あいうえお", want: []string{"あいうえお"}},
+		{name: "period", blob: "あ。いう", want: []string{"あ", "いう"}},
+		{name: "fullwidth_period", blob: "あ．いう", want: []string{"あ", "いう"}},
+		{name: "question_marks", blob: "え?お", want: []string{"え", "お"}},
+		{name: "fullwidth_question", blob: "え？お", want: []string{"え", "お"}},
+		{name: "exclamation", blob: "か!き", want: []string{"か", "き"}},
+		{name: "fullwidth_exclamation", blob: "か！き", want: []string{"か", "き"}},
+		{name: "leading_delimiter", blob: "。あい", want: []string{"あい"}},
+		{name: "trailing_delimiter", blob: "あい。", want: []string{"あい"}},
+		{name: "consecutive_delimiters", blob: "あ。。い", want: []string{"あ", "い"}},
+		{name: "delimiters_only", blob: "。。", want: nil},
+		{name: "mixed", blob: "あ？い。う", want: []string{"あ", "い", "う"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := SplitBlobBySentenceDelimiters(tt.blob)
+			if len(got) != len(tt.want) {
+				t.Fatalf("len=%d want %d got %#v want %#v", len(got), len(tt.want), got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Fatalf("got %#v want %#v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
 func TestIsUnbrokenSenryuCandidate(t *testing.T) {
 	t.Parallel()
 	// 17 ひらがな（ふるいけや + かわずとびこむ + みずのおと）

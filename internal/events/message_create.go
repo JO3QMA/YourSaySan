@@ -53,11 +53,15 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 					}
 				} else {
 					blob := senryu.NormalizeSenryuBlob(m.Content)
-					n := utf8.RuneCountInString(blob)
-					if n >= senryu.SenryuBlobMinRunes && n <= maxBlobRunes {
-						if match, found := an.FindInBlob(blob, senryu.SenryuBlobMinRunes, maxBlobRunes); found {
+					for _, seg := range senryu.SplitBlobBySentenceDelimiters(blob) {
+						n := utf8.RuneCountInString(seg)
+						if n < senryu.SenryuBlobMinRunes || n > maxBlobRunes {
+							continue
+						}
+						if match, found := an.FindInBlob(seg, senryu.SenryuBlobMinRunes, maxBlobRunes); found {
 							reply := senryu.FormatSenryuReply(replyTemplate, match)
 							sendSenryuReply(session, channelID, messageID, guildID, reply)
+							break
 						}
 					}
 				}
