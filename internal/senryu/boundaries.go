@@ -3,13 +3,10 @@ package senryu
 import "strings"
 
 // phraseStartOK は 5・7・5 の各句の先頭形態素として自然か（助詞・助動詞で始まらない等）。
-// 接頭詞（お・ご 等が単独形態素になる場合）も句頭不可とする。ホスト語なしの接頭詞は句として不自然とみなすトレードオフで、
-// 「お花見の」のように接頭詞で始まる行は偽陰性になりうる（意図的な仕様）。
+// 接頭詞（お・ご 等）も句頭で許可する（敬語表現を川柳として拾いやすくする）。経路B では複合語の途中で不当に句切られる誤検知が増えうるトレードオフがある。
 func phraseStartOK(m morph) bool {
 	switch m.posMajor {
 	case "助詞", "助動詞":
-		return false
-	case "接頭詞":
 		return false
 	default:
 		return true
