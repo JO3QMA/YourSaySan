@@ -8,8 +8,8 @@ import (
 func ReadyHandler(b BotInterface) func(s *discordgo.Session, event *discordgo.Ready) {
 	return func(s *discordgo.Session, event *discordgo.Ready) {
 		logrus.WithFields(logrus.Fields{
-			"user_id":    s.State.User.ID,
-			"username":   s.State.User.Username,
+			"user_id":     s.State.User.ID,
+			"username":    s.State.User.Username,
 			"guild_count": len(event.Guilds),
 		}).Info("Discord Ready event received")
 
@@ -31,4 +31,3 @@ func ReadyHandler(b BotInterface) func(s *discordgo.Session, event *discordgo.Re
 		logrus.Info("Bot is Ready!")
 	}
 }
-

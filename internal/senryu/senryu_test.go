@@ -1,8 +1,6 @@
 package senryu
 
 import (
-	"context"
-	"errors"
 	"strings"
 	"testing"
 )
@@ -87,54 +85,6 @@ func TestNormalizeLine_Mention(t *testing.T) {
 	}
 }
 
-type stubCounter struct {
-	counts []int
-	err    error
-	i      int
-}
-
-func (s *stubCounter) CountMorae(_ context.Context, _ string, _ int) (int, error) {
-	if s.err != nil {
-		return 0, s.err
-	}
-	if s.i >= len(s.counts) {
-		return 0, errors.New("exhausted")
-	}
-	n := s.counts[s.i]
-	s.i++
-	return n, nil
-}
-
-func TestIs575Morae(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	lines := []string{"a", "b", "c"}
-
-	stub := &stubCounter{counts: []int{5, 7, 5}}
-	ok, err := Is575Morae(ctx, stub, lines, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("expected true")
-	}
-
-	stub2 := &stubCounter{counts: []int{5, 6, 5}}
-	ok, err = Is575Morae(ctx, stub2, lines, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ok {
-		t.Fatal("expected false")
-	}
-
-	stubErr := &stubCounter{err: errors.New("boom")}
-	_, err = Is575Morae(ctx, stubErr, lines, 1)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
 func TestNormalizeSenryuBlob_stripsSpaceAndNewline(t *testing.T) {
 	t.Parallel()
 	// 本文に改行や空白があっても blob は連続化（IsUnbrokenSenryuCandidate は raw に改行があると偽）
@@ -169,30 +119,6 @@ func TestIsUnbrokenSenryuCandidate(t *testing.T) {
 	blob, ok = IsUnbrokenSenryuCandidate("ふるいけや かわずとびこむ みずのおと")
 	if !ok || blob != haiku {
 		t.Fatalf("ok=%v blob=%q want %q", ok, blob, haiku)
-	}
-}
-
-func TestIs575MoraeUnbroken(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	stub := &stubCounter{counts: []int{17}}
-	ok, err := Is575MoraeUnbroken(ctx, stub, "ふるいけやかわずとびこむみずのおと", 1)
-	if err != nil || !ok {
-		t.Fatalf("err=%v ok=%v", err, ok)
-	}
-	stub2 := &stubCounter{counts: []int{16}}
-	ok, err = Is575MoraeUnbroken(ctx, stub2, "x", 1)
-	if err != nil || ok {
-		t.Fatalf("err=%v ok=%v want false", err, ok)
-	}
-	stubErr := &stubCounter{err: errors.New("boom")}
-	_, err = Is575MoraeUnbroken(ctx, stubErr, "x", 1)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	ok, err = Is575MoraeUnbroken(ctx, stub, "", 1)
-	if err != nil || ok {
-		t.Fatalf("empty blob: err=%v ok=%v", err, ok)
 	}
 }
 

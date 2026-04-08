@@ -100,4 +100,3 @@ func SpeakerListHandler(b BotInterface, s *discordgo.Session, i *discordgo.Inter
 		},
 	})
 }
-

@@ -9,6 +9,7 @@ import (
 
 	"github.com/JO3QMA/YourSaySan/internal/commands"
 	"github.com/JO3QMA/YourSaySan/internal/events"
+	"github.com/JO3QMA/YourSaySan/internal/senryu"
 	"github.com/JO3QMA/YourSaySan/internal/speaker"
 	"github.com/JO3QMA/YourSaySan/internal/voice"
 	"github.com/JO3QMA/YourSaySan/internal/voicevox"
@@ -22,9 +23,10 @@ type Bot struct {
 	config  *Config
 	state   *State
 
-	// 共有リソース（具象 *voicevox.Client: commands は狭い VoiceVoxAPI、events は CountMorae 付きで参照）
+	// 共有リソース（具象 *voicevox.Client: commands は狭い VoiceVoxAPI）
 	voicevox       *voicevox.Client
 	speakerManager commands.SpeakerManagerAPI // インターフェース
+	senryuAnalyzer *senryu.Analyzer           // SENRYU_ENABLED 時のみ非 nil
 
 	// マルチギルド対応: ギルドごとのVC接続管理
 	voiceConns map[string]*voice.Connection // guildID -> connection
@@ -96,6 +98,17 @@ func (b *Bot) Start() error {
 	voicevoxClient := voicevox.NewClient(b.config.VoiceVox.Host)
 	b.voicevox = voicevoxClient
 	logrus.Debug("VoiceVox client initialized")
+
+	if b.config.Senryu.Enabled {
+		logrus.Info("Initializing senryu morphological analyzer (Kagome IPA)")
+		sa, err := senryu.NewAnalyzer()
+		if err != nil {
+			logrus.WithError(err).Error("Failed to create senryu analyzer")
+			return fmt.Errorf("senryu analyzer: %w", err)
+		}
+		b.senryuAnalyzer = sa
+		logrus.Debug("Senryu analyzer initialized")
+	}
 
 	// 4. SpeakerManager初期化
 	logrus.Debug("Initializing SpeakerManager")
@@ -288,6 +301,10 @@ func (w *eventsBotWrapper) GetSession() *discordgo.Session {
 
 func (w *eventsBotWrapper) GetVoiceVox() events.VoiceVoxAPI {
 	return w.bot.voicevox
+}
+
+func (w *eventsBotWrapper) GetSenryuAnalyzer() *senryu.Analyzer {
+	return w.bot.senryuAnalyzer
 }
 
 func (w *eventsBotWrapper) GetSpeakerManager() events.SpeakerManagerAPI {

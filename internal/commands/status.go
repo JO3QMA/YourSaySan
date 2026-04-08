@@ -134,4 +134,3 @@ func formatHealth(healthy bool) string {
 	}
 	return "❌ 異常"
 }
-

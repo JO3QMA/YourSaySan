@@ -32,74 +32,34 @@ func MessageCreateHandler(b BotInterface) func(s *discordgo.Session, m *discordg
 		cfg := b.GetConfig()
 
 		// 川柳（5-7-5）: ギルド内の全チャンネルが対象（DM は GuildID なしのため除外）
-		// 経路A: ちょうど3行 / 経路B: 正規化 blob に対し audio_query 1回で全文17モーラまたは文中の連続17モーラを検出
+		// 経路A/B は Kagome 形態素解析（Bot 内完結、VoiceVox 非依存）
 		if cfg.GetSenryuEnabled() && m.GuildID != "" {
-			channelID := m.ChannelID
-			messageID := m.ID
-			guildID := m.GuildID
-			authorID := m.Author.ID
-			replyTemplate := cfg.GetSenryuReplyText()
-			session := b.GetSession()
-			maxBlobRunes := cfg.GetSenryuMaxBlobRunes()
-
-			if lines, ok := senryu.ThreeLines(m.Content); ok {
-				linesCopy := lines
-				b.RunWithSemaphore(func() {
-					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-					defer cancel()
-
-					speakerID, err := b.GetSpeakerManager().GetSpeaker(ctx, authorID)
-					if err != nil {
-						logrus.WithError(err).WithField("user_id", authorID).Warn("Failed to get speaker for senryu check")
-						speakerID = 2
-					}
-
-					is575, err := senryu.Is575Morae(ctx, b.GetVoiceVox(), linesCopy, speakerID)
-					if err != nil {
-						logrus.WithError(err).WithFields(logrus.Fields{
-							"guild_id":   guildID,
-							"channel_id": channelID,
-							"message_id": messageID,
-						}).Warn("Senryu mora check failed")
-						return
-					}
-					if !is575 {
-						return
-					}
-					match := strings.Join(linesCopy, "\n")
-					reply := senryu.FormatSenryuReply(replyTemplate, match)
-					sendSenryuReply(session, channelID, messageID, guildID, reply)
-				})
+			an := b.GetSenryuAnalyzer()
+			if an == nil {
+				logrus.Error("Senryu enabled but analyzer is nil (startup misconfiguration)")
 			} else {
-				blob := senryu.NormalizeSenryuBlob(m.Content)
-				n := utf8.RuneCountInString(blob)
-				if n >= senryu.SenryuBlobMinRunes && n <= maxBlobRunes {
-					blobCopy := blob
-					b.RunWithSemaphore(func() {
-						ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-						defer cancel()
+				channelID := m.ChannelID
+				messageID := m.ID
+				guildID := m.GuildID
+				replyTemplate := cfg.GetSenryuReplyText()
+				session := b.GetSession()
+				maxBlobRunes := cfg.GetSenryuMaxBlobRunes()
 
-						speakerID, err := b.GetSpeakerManager().GetSpeaker(ctx, authorID)
-						if err != nil {
-							logrus.WithError(err).WithField("user_id", authorID).Warn("Failed to get speaker for senryu check")
-							speakerID = 2
-						}
-
-						match, found, err := b.GetVoiceVox().FindSenryuMatch(ctx, blobCopy, speakerID, senryu.SenryuBlobMinRunes, maxBlobRunes)
-						if err != nil {
-							logrus.WithError(err).WithFields(logrus.Fields{
-								"guild_id":   guildID,
-								"channel_id": channelID,
-								"message_id": messageID,
-							}).Warn("Senryu mora check failed")
-							return
-						}
-						if !found {
-							return
-						}
+				if lines, ok := senryu.ThreeLines(m.Content); ok {
+					if an.CheckThreeLines(lines) {
+						match := strings.Join(lines, "\n")
 						reply := senryu.FormatSenryuReply(replyTemplate, match)
 						sendSenryuReply(session, channelID, messageID, guildID, reply)
-					})
+					}
+				} else {
+					blob := senryu.NormalizeSenryuBlob(m.Content)
+					n := utf8.RuneCountInString(blob)
+					if n >= senryu.SenryuBlobMinRunes && n <= maxBlobRunes {
+						if match, found := an.FindInBlob(blob, senryu.SenryuBlobMinRunes, maxBlobRunes); found {
+							reply := senryu.FormatSenryuReply(replyTemplate, match)
+							sendSenryuReply(session, channelID, messageID, guildID, reply)
+						}
+					}
 				}
 			}
 		}

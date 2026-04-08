@@ -50,4 +50,3 @@ func VoiceStateUpdateHandler(b BotInterface) func(s *discordgo.Session, vs *disc
 		}
 	}
 }
-

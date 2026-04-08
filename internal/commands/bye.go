@@ -51,4 +51,3 @@ func ByeHandler(b BotInterface, s *discordgo.Session, i *discordgo.InteractionCr
 		},
 	})
 }
-

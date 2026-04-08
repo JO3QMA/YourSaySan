@@ -38,4 +38,3 @@ func InviteHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 		},
 	})
 }
-

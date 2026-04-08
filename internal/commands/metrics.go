@@ -6,4 +6,3 @@ package commands
 func IncrementCommandCounter(command string) {
 	// メトリクス記録は将来実装
 }
-

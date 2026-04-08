@@ -15,8 +15,8 @@ func SummonHandler(b BotInterface, s *discordgo.Session, i *discordgo.Interactio
 	userID := i.Member.User.ID
 
 	logrus.WithFields(logrus.Fields{
-		"guild_id":  guildID,
-		"user_id":   userID,
+		"guild_id":   guildID,
+		"user_id":    userID,
 		"channel_id": i.ChannelID,
 	}).Debug("Summon command started")
 

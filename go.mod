@@ -10,6 +10,9 @@ require (
 	github.com/go-audio/wav v1.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hraban/opus v0.0.0-20230925203106-0188a62cb302
+	github.com/ikawaha/kagome-dict v1.1.7
+	github.com/ikawaha/kagome-dict/ipa v1.2.6
+	github.com/ikawaha/kagome/v2 v2.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
 	github.com/redis/go-redis/v9 v9.18.0

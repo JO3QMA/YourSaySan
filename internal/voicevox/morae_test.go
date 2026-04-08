@@ -2,7 +2,6 @@ package voicevox
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
@@ -132,127 +131,6 @@ func queryWithMoras(moras []map[string]any, pauseAfterPhrase bool) AudioQuery {
 		panic(err)
 	}
 	return q
-}
-
-func TestFindFirst575Window_nil(t *testing.T) {
-	t.Parallel()
-	if _, ok := FindFirst575Window(nil); ok {
-		t.Fatal("expected false")
-	}
-}
-
-func TestFindFirst575Window_tooShort(t *testing.T) {
-	t.Parallel()
-	moras := make([]map[string]any, 16)
-	for i := range moras {
-		moras[i] = moraJSON("ア", "a")
-	}
-	q := queryWithMoras(moras, false)
-	if _, ok := FindFirst575Window(&q); ok {
-		t.Fatal("expected false")
-	}
-}
-
-func TestFindFirst575Window_embedded18(t *testing.T) {
-	t.Parallel()
-	moras := make([]map[string]any, 18)
-	want := ""
-	for i := range moras {
-		ch := string(rune('A' + i))
-		moras[i] = moraJSON(ch, "a")
-		if i < 17 {
-			want += ch
-		}
-	}
-	q := queryWithMoras(moras, false)
-	got, ok := FindFirst575Window(&q)
-	if !ok || got != want {
-		t.Fatalf("ok=%v got=%q want=%q", ok, got, want)
-	}
-}
-
-func TestFindFirst575Window_pauseSplitsSegments(t *testing.T) {
-	t.Parallel()
-	// 句1: 10 モーラ、pause、句2: 8 モーラ → どちらも 17 未満で部分マッチなし
-	first := make([]map[string]any, 10)
-	for i := range first {
-		first[i] = moraJSON("イ", "i")
-	}
-	second := make([]map[string]any, 8)
-	for i := range second {
-		second[i] = moraJSON("ウ", "u")
-	}
-	wrapped := map[string]any{
-		"accent_phrases": []map[string]any{
-			{"moras": first, "accent": 1, "isInterrogative": false,
-				"pauseMora": map[string]any{"text": "、", "vowel": "pau", "vowel_length": 0.1, "pitch": 0}},
-			{"moras": second, "accent": 1, "isInterrogative": false},
-		},
-		"speedScale": 1, "pitchScale": 0, "intonationScale": 1, "volumeScale": 1,
-		"prePhonemeLength": 0.1, "postPhonemeLength": 0.1,
-		"outputSamplingRate": 24000, "outputStereo": false,
-	}
-	raw, _ := json.Marshal(wrapped)
-	var q AudioQuery
-	if err := json.Unmarshal(raw, &q); err != nil {
-		t.Fatal(err)
-	}
-	if MoraeCountInQuery(&q) != 18 {
-		t.Fatalf("total morae got %d", MoraeCountInQuery(&q))
-	}
-	if _, ok := FindFirst575Window(&q); ok {
-		t.Fatal("expected no 17-window within a segment")
-	}
-	// 全文17（8+9）なら SenryuMatchFromQuery は全体マッチ
-	first8 := make([]map[string]any, 8)
-	for i := range first8 {
-		first8[i] = moraJSON("イ", "i")
-	}
-	second9 := make([]map[string]any, 9)
-	for i := range second9 {
-		second9[i] = moraJSON("ウ", "u")
-	}
-	wrapped2 := map[string]any{
-		"accent_phrases": []map[string]any{
-			{"moras": first8, "accent": 1, "isInterrogative": false,
-				"pauseMora": map[string]any{"text": "、", "vowel": "pau", "vowel_length": 0.1, "pitch": 0}},
-			{"moras": second9, "accent": 1, "isInterrogative": false},
-		},
-		"speedScale": 1, "pitchScale": 0, "intonationScale": 1, "volumeScale": 1,
-		"prePhonemeLength": 0.1, "postPhonemeLength": 0.1,
-		"outputSamplingRate": 24000, "outputStereo": false,
-	}
-	raw2, _ := json.Marshal(wrapped2)
-	var q2 AudioQuery
-	if err := json.Unmarshal(raw2, &q2); err != nil {
-		t.Fatal(err)
-	}
-	if MoraeCountInQuery(&q2) != 17 {
-		t.Fatalf("total morae got %d", MoraeCountInQuery(&q2))
-	}
-	match, ok := SenryuMatchFromQuery(&q2)
-	if !ok {
-		t.Fatal("expected full 17 match across pause")
-	}
-	if match != strings.Repeat("イ", 8)+strings.Repeat("ウ", 9) {
-		t.Fatalf("match=%q", match)
-	}
-	if _, ok := FindFirst575Window(&q2); ok {
-		t.Fatal("FindFirst575Window should not span segments")
-	}
-}
-
-func TestSenryuMatchFromQuery_exactly17OnePhrase(t *testing.T) {
-	t.Parallel()
-	moras := make([]map[string]any, 17)
-	for i := range moras {
-		moras[i] = moraJSON("x", "a")
-	}
-	q := queryWithMoras(moras, false)
-	match, ok := SenryuMatchFromQuery(&q)
-	if !ok || match != strings.Repeat("x", 17) {
-		t.Fatalf("ok=%v match=%q", ok, match)
-	}
 }
 
 func TestJoinAllLinguisticMorae(t *testing.T) {
