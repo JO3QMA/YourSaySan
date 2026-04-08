@@ -2,7 +2,6 @@ package senryu
 
 import (
 	"fmt"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/ikawaha/kagome-dict/dict"
@@ -12,7 +11,6 @@ import (
 
 // Analyzer は Kagome IPA 辞書による川柳判定（形態素境界・読みモーラ）。
 type Analyzer struct {
-	mu  sync.Mutex
 	tnz *tokenizer.Tokenizer
 	dic *dict.Dict
 }
@@ -56,14 +54,14 @@ func (a *Analyzer) CheckThreeLines(lines []string) bool {
 }
 
 // FindInBlob は正規化 blob 内で 5+7+5（17モーラ）かつ品詞境界を満たす最初の部分文字列を返す。
-// 辞書は読み取り専用のため a.mu は不要（Tokenizer は共有しない）。
+// 辞書は読み取り専用。Tokenizer は goroutine セーフなため排他不要。
 func (a *Analyzer) FindInBlob(blob string, minRunes, maxRunes int) (match string, ok bool) {
 	n := utf8.RuneCountInString(blob)
 	if n < minRunes || n > maxRunes {
 		return "", false
 	}
 
-	// blob 経路は読み取り専用の辞書参照のみ（arcsFromPosition）。Tokenizer と mutex は共有しない。
+	// blob 経路は読み取り専用の辞書参照のみ（arcsFromPosition）。
 	targets := []int{5, 7, 5}
 	rc := n
 
@@ -76,8 +74,6 @@ func (a *Analyzer) FindInBlob(blob string, minRunes, maxRunes int) (match string
 }
 
 func (a *Analyzer) tokenizeLine(line string) []morph {
-	a.mu.Lock()
-	defer a.mu.Unlock()
 	toks := a.tnz.Tokenize(line)
 	var ms []morph
 	for _, tok := range toks {
