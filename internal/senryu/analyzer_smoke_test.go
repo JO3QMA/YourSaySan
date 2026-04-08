@@ -25,12 +25,28 @@ func TestAnalyzer_ClassicHaiku_blob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	match, ok := a.FindInBlob("ふるいけやかわずとびこむみずのおと", SenryuBlobMinRunes, 100)
+	// 無区切りのひらがな長連続は Viterbi 上で1語化されやすく 5+7+5 の形態素境界と一致しない。
+	// 読点で区切ると経路Bでも検出できる（Discord 正規化は空白のみ除去し、読点は残る）。
+	blob := "ふるいけや、かわずとびこむ、みずのおと"
+	match, ok := a.FindInBlob(blob, SenryuBlobMinRunes, 100)
 	if !ok {
 		t.Fatal("expected blob match")
 	}
-	if match != "ふるいけやかわずとびこむみずのおと" {
-		t.Fatalf("match=%q", match)
+	if match != blob {
+		t.Fatalf("match=%q want %q", match, blob)
+	}
+}
+
+// 無区切り古典俳句の連続ひらがなは経路Bでは検出しない（トークン境界の制約）。
+func TestAnalyzer_ClassicHaiku_blob_noDelimiter_notMatched(t *testing.T) {
+	t.Parallel()
+	a, err := NewAnalyzer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := "ふるいけやかわずとびこむみずのおと"
+	if _, ok := a.FindInBlob(blob, SenryuBlobMinRunes, 100); ok {
+		t.Fatal("expected no blob match for undelimited kana run")
 	}
 }
 
@@ -89,7 +105,7 @@ func TestAnalyzer_NounNounBoundary_blob(t *testing.T) {
 	if !ok {
 		t.Fatal("expected blob match with noun–noun boundary between segments")
 	}
-	// FindInBlob は開始位置0で最初に見つかった 5+7+5 を返す。ラティス分割の違いで本文より短いプレフィックスになる場合がある。
+	// FindInBlob は Tokenize 1本の形態素列上で最初に見つかった 5+7+5（表層形連結）を返す。
 	if match == "" || !strings.HasPrefix(blob, match) {
 		t.Fatalf("match=%q want non-empty prefix of blob %q", match, blob)
 	}
@@ -123,5 +139,29 @@ func TestAnalyzer_ConcurrentTokenize(t *testing.T) {
 	wg.Wait()
 	if fail.Load() {
 		t.Fatal("concurrent tokenizeLine produced empty morphs")
+	}
+}
+
+func TestAnalyzer_FindInBlob_noFalsePositive_morphChat(t *testing.T) {
+	t.Parallel()
+	a, err := NewAnalyzer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := "一応形態素解析するようにはしたけど"
+	if _, ok := a.FindInBlob(blob, SenryuBlobMinRunes, 100); ok {
+		t.Fatal("expected no match for morph-analysis chat line (former DFS false positive)")
+	}
+}
+
+func TestAnalyzer_FindInBlob_noFalsePositive_gengo(t *testing.T) {
+	t.Parallel()
+	a, err := NewAnalyzer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := "言語がなんで分かれるんだろう"
+	if _, ok := a.FindInBlob(blob, SenryuBlobMinRunes, 100); ok {
+		t.Fatal("expected no match (former DFS split 言/語 false positive)")
 	}
 }
