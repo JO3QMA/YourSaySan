@@ -67,22 +67,3 @@ func isKana(r rune) bool {
 func moraeFromSurface(surface string) int {
 	return CountMoraeInReading(surface)
 }
-
-// substringByRunes は s の [start, end) ルーン範囲の部分文字列を返す。
-func substringByRunes(s string, start, end int) string {
-	if start < 0 || end <= start {
-		return ""
-	}
-	var b strings.Builder
-	i := 0
-	for _, r := range s {
-		if i >= end {
-			break
-		}
-		if i >= start {
-			b.WriteRune(r)
-		}
-		i++
-	}
-	return b.String()
-}
