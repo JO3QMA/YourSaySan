@@ -59,9 +59,5 @@ func breakBetween(left, right morph) bool {
 	if !phraseStartOK(right) {
 		return false
 	}
-	// 複合名詞の途中: 名詞 + 名詞（助詞なし）は句切りにしない
-	if left.posMajor == "名詞" && right.posMajor == "名詞" {
-		return false
-	}
 	return true
 }
