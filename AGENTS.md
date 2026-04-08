@@ -90,7 +90,9 @@ cmd/bot → internal/bot → internal/commands, events, voice, voicevox, speaker
 
 `SENRYU_REPLY_TEXT` は **ちょうど1つ**の `%s` があると `fmt.Sprintf` でマッチ箇所を埋め込み、それ以外は本文の後に `「…」` を付与する。経路Aでも返信に3行マッチが含まれる。
 
-経路Bは `SENRYU_MAX_BLOB_RUNES` で解析長を抑えています。川柳判定は `RunWithSemaphore` の外で同期実行され、VoiceVox のレートリミッタを消費しません。
+経路Bは `SENRYU_MAX_BLOB_RUNES` で解析長を抑えています。川柳判定は `RunWithSemaphore` の外で同期実行され、VoiceVox のレートリミッタを消費しません。有効時は同一メッセージの TTS 処理が川柳判定分だけ後ろにずれます（CPU 負荷は軽微な想定）。
+
+品詞境界の補足: **句頭の接頭詞**（IPA で「お」「ご」等が単独の接頭詞になる場合）は、ホスト語なしの句頭を不自然とみなして拒否する（偽陰性とのトレードオフ）。読みが取れない形態素（UNKNOWN 等）は表面からモーラを推定するため、漢字1字あたりの数え方が実読みとずれることがある。
 
 VoiceVox へのリクエストは `internal/voicevox/client.go` の**共有レートリミッタ**（10 req/s）で制限されており、`Speak`（リトライ試行あたりレート制限トークン1回で `/audio_query` と `/synthesis` の両方を実行）、`GetSpeakers` が同じバケツを共有します。
 

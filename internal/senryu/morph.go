@@ -23,6 +23,7 @@ func (m morph) morae() int {
 			return n
 		}
 	}
+	// UNKNOWN 等で読みが無いときは表面から推定するが、漢字1字1モーラ等で実読みとずれることがある（検出品質の限界）。
 	return moraeFromSurface(m.surface)
 }
 
@@ -50,6 +51,9 @@ func morphFromNode(d *dict.Dict, n *lattice.Node) morph {
 	m.surface = n.Surface
 	switch n.Class {
 	case lattice.KNOWN:
+		if n.ID < 0 || n.ID >= len(d.POSTable.POSs) || n.ID >= len(d.Contents) {
+			return m
+		}
 		posIDs := d.POSTable.POSs[n.ID]
 		if len(posIDs) > 0 {
 			m.posMajor = d.POSTable.NameList[posIDs[0]]
@@ -57,16 +61,14 @@ func morphFromNode(d *dict.Dict, n *lattice.Node) morph {
 		if len(posIDs) > 1 {
 			m.posMinor = d.POSTable.NameList[posIDs[1]]
 		}
-		if len(d.Contents) > n.ID {
-			c := d.Contents[n.ID]
-			pLen := len(posIDs)
-			// tokenizer.FeatureAt と同じ: 素性インデックスから POS 階層長を引いて Contents 列を得る
-			if ri := int(ipa.Reading) - pLen; ri >= 0 && ri < len(c) {
-				m.reading = c[ri]
-			}
-			if fi := int(ipa.InflectionalForm) - pLen; fi >= 0 && fi < len(c) {
-				m.inflectionalForm = c[fi]
-			}
+		c := d.Contents[n.ID]
+		pLen := len(posIDs)
+		// tokenizer.FeatureAt と同じ: 素性インデックスから POS 階層長を引いて Contents 列を得る
+		if ri := int(ipa.Reading) - pLen; ri >= 0 && ri < len(c) {
+			m.reading = c[ri]
+		}
+		if fi := int(ipa.InflectionalForm) - pLen; fi >= 0 && fi < len(c) {
+			m.inflectionalForm = c[fi]
 		}
 	case lattice.UNKNOWN:
 		if len(d.UnkDict.Contents) > n.ID {

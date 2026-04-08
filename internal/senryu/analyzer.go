@@ -56,6 +56,7 @@ func (a *Analyzer) CheckThreeLines(lines []string) bool {
 }
 
 // FindInBlob は正規化 blob 内で 5+7+5（17モーラ）かつ品詞境界を満たす最初の部分文字列を返す。
+// 辞書は読み取り専用のため a.mu は不要（Tokenizer は共有しない）。
 func (a *Analyzer) FindInBlob(blob string, minRunes, maxRunes int) (match string, ok bool) {
 	n := utf8.RuneCountInString(blob)
 	if n < minRunes || n > maxRunes {
@@ -64,7 +65,7 @@ func (a *Analyzer) FindInBlob(blob string, minRunes, maxRunes int) (match string
 
 	// blob 経路は読み取り専用の辞書参照のみ（arcsFromPosition）。Tokenizer と mutex は共有しない。
 	targets := []int{5, 7, 5}
-	rc := utf8.RuneCountInString(blob)
+	rc := n
 
 	for s := 0; s < rc; s++ {
 		if end, found := dfsBlobMatch(a.dic, blob, rc, s, targets); found {
@@ -89,8 +90,8 @@ func (a *Analyzer) tokenizeLine(line string) []morph {
 }
 
 type dfsMemoKey struct {
-	pos, segIdx, acc            int
-	lastSurf, lastPOS, lastInfl string
+	pos, segIdx, acc int
+	lastPOS, lastInfl string
 }
 
 // dfsBlobMatch は複数分割候補を列挙する（arcsFromPosition は lattice.Build と同じ弧集合）。
@@ -105,13 +106,12 @@ func dfsBlobMatch(d *dict.Dict, inp string, rc, start int, targets []int) (endRu
 		if segIdx >= len(targets) {
 			return pos, true
 		}
-		lSurf, lPOS, lInfl := "", "", ""
+		lPOS, lInfl := "", ""
 		if lastSegEnd != nil {
-			lSurf = lastSegEnd.surface
 			lPOS = lastSegEnd.posMajor
 			lInfl = lastSegEnd.inflectionalForm
 		}
-		mk := dfsMemoKey{pos: pos, segIdx: segIdx, acc: acc, lastSurf: lSurf, lastPOS: lPOS, lastInfl: lInfl}
+		mk := dfsMemoKey{pos: pos, segIdx: segIdx, acc: acc, lastPOS: lPOS, lastInfl: lInfl}
 		if v, ok := memo[mk]; ok {
 			return v.end, v.ok
 		}
