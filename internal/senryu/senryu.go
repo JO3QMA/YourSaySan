@@ -59,6 +59,42 @@ func NormalizeSenryuBlob(content string) string {
 	return b.String()
 }
 
+func isSentenceDelimiterRune(r rune) bool {
+	switch r {
+	case '。', '\uFF0E', '?', '？', '!', '！':
+		return true
+	default:
+		return false
+	}
+}
+
+// SplitBlobBySentenceDelimiters は正規化済み blob を句点・疑問符・感嘆符で分割する（区切り文字は結果に含めない）。
+// 区切りが無いときは []string{blob} を返す。空入力・区切りのみの入力は nil。
+func SplitBlobBySentenceDelimiters(blob string) []string {
+	if blob == "" {
+		return nil
+	}
+	var out []string
+	var seg strings.Builder
+	for _, r := range blob {
+		if isSentenceDelimiterRune(r) {
+			if seg.Len() > 0 {
+				out = append(out, seg.String())
+				seg.Reset()
+			}
+			continue
+		}
+		seg.WriteRune(r)
+	}
+	if seg.Len() > 0 {
+		out = append(out, seg.String())
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 // IsUnbrokenSenryuCandidate は本文に改行がなく、正規化後の blob が川柳（連続17モーラ）候補として妥当な長さのとき (blob, true)。
 func IsUnbrokenSenryuCandidate(content string) (blob string, ok bool) {
 	if strings.ContainsAny(content, "\n\r") {
