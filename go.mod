@@ -14,7 +14,7 @@ require (
 	github.com/ikawaha/kagome/v2 v2.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
-	github.com/redis/go-redis/v9 v9.19.0
+	github.com/redis/go-redis/v9 v9.20.1
 	github.com/sirupsen/logrus v1.9.4
 	golang.org/x/time v0.15.0
 )
