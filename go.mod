@@ -1,8 +1,6 @@
 module github.com/JO3QMA/YourSaySan
 
-go 1.25.0
-
-toolchain go1.25.6
+go 1.26.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
@@ -16,7 +14,7 @@ require (
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/sirupsen/logrus v1.9.4
-	golang.org/x/time v0.15.0
+	golang.org/x/time v0.16.0
 )
 
 require (
