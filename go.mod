@@ -1,8 +1,6 @@
 module github.com/JO3QMA/YourSaySan
 
-go 1.25.0
-
-toolchain go1.25.6
+go 1.26.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
@@ -14,14 +12,14 @@ require (
 	github.com/ikawaha/kagome/v2 v2.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.23.0
 	github.com/sirupsen/logrus v1.9.4
 	golang.org/x/time v0.15.0
 )
 
 require (
 	github.com/ikawaha/kagome-dict v1.1.7 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
 
@@ -30,5 +28,5 @@ require (
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
